@@ -1,0 +1,2712 @@
+ChatGPT
+
+
+
+
+
+Absolutely. I recommend creating everything under a single root directory, for example:
+
+/opt/media-platform
+This is a common location for self-hosted services on Ubuntu.
+
+Create a file named create-media-platform.sh with the following content:
+
+#!/bin/bash
+
+set -e
+
+ROOT="/opt/media-platform"
+
+echo "Creating Media Platform directory structure..."
+
+# Root directories
+mkdir -p "$ROOT"/{
+config,
+docker,
+services,
+shared,
+scripts,
+docs,
+tests,
+logs,
+backups,
+data
+}
+
+# Configuration
+mkdir -p "$ROOT/config"/{
+jellyfin,
+postgres,
+redis,
+nginx
+}
+
+# Data directories
+mkdir -p "$ROOT/data"/{
+downloads,
+library,
+subtitles,
+metadata,
+cache,
+temp
+}
+
+mkdir -p "$ROOT/data/downloads"/{
+incoming,
+processing,
+completed,
+failed
+}
+
+mkdir -p "$ROOT/data/library"/{
+movies,
+tvshows,
+radio,
+live-tv,
+recordings,
+collections
+}
+
+# Docker files
+touch "$ROOT/docker-compose.yml"
+touch "$ROOT/.env"
+touch "$ROOT/.gitignore"
+touch "$ROOT/README.md"
+
+# Services
+SERVICES=(
+workflow-engine
+media-api
+telegram-service
+download-service
+analyzer-service
+metadata-service
+subtitle-service
+quality-service
+duplicate-service
+storage-service
+health-service
+live-tv-service
+radio-service
+ai-service
+)
+
+for SERVICE in "${SERVICES[@]}"; do
+mkdir -p "$ROOT/services/$SERVICE"/{
+app,
+config,
+tests,
+logs
+}
+
+touch "$ROOT/services/$SERVICE"/{
+Dockerfile,
+requirements.txt,
+README.md
+}
+
+touch "$ROOT/services/$SERVICE/app"/{
+__init__.py,
+main.py,
+config.py
+}
+done
+
+# Shared libraries
+mkdir -p "$ROOT/shared"/{
+database,
+events,
+models,
+clients,
+utils,
+constants
+}
+
+touch "$ROOT/shared/database"/{
+connection.py,
+base.py
+}
+
+touch "$ROOT/shared/events"/{
+publisher.py,
+subscriber.py,
+events.py
+}
+
+touch "$ROOT/shared/models/__init__.py"
+
+touch "$ROOT/shared/clients/__init__.py"
+
+touch "$ROOT/shared/utils/__init__.py"
+
+touch "$ROOT/shared/constants/__init__.py"
+
+# Scripts
+touch "$ROOT/scripts"/{
+backup.sh,
+restore.sh,
+update.sh,
+cleanup.sh
+}
+
+chmod +x "$ROOT/scripts/"*.sh
+
+echo ""
+echo "========================================="
+echo "Media Platform structure created!"
+echo "Location:"
+echo " $ROOT"
+echo "========================================="
+Make it executable
+chmod +x create-media-platform.sh
+Run it
+sudo ./create-media-platform.sh
+Expected Structure
+/opt/media-platform
+
+├── backups
+├── config
+│ ├── jellyfin
+│ ├── nginx
+│ ├── postgres
+│ └── redis
+├── data
+│ ├── cache
+│ ├── downloads
+│ ├── library
+│ ├── metadata
+│ ├── subtitles
+│ └── temp
+├── docker
+├── docker-compose.yml
+├── docs
+├── logs
+├── scripts
+├── services
+│ ├── ai-service
+│ ├── analyzer-service
+│ ├── download-service
+│ ├── duplicate-service
+│ ├── health-service
+│ ├── live-tv-service
+│ ├── media-api
+│ ├── metadata-service
+│ ├── quality-service
+│ ├── radio-service
+│ ├── storage-service
+│ ├── subtitle-service
+│ ├── telegram-service
+│ └── workflow-engine
+├── shared
+│ ├── clients
+│ ├── constants
+│ ├── database
+│ ├── events
+│ ├── models
+│ └── utils
+└── tests
+One recommendation before we proceed
+Before writing any Python code, I recommend we define one additional top-level directory:
+
+/opt/media-platform
+
+├── compose/
+│ ├── base/
+│ ├── development/
+│ ├── production/
+│ └── override/
+Instead of keeping a single docker-compose.yml, we can split the stack into modular Compose files (e.g., infrastructure,
+media services, AI, monitoring). This will make it much easier to run only the services you need during development and
+scale the platform as it grows. It's a pattern commonly used in larger self-hosted and microservice deployments.
+
+
+Creating Media Platform directory structure...
+./create_folder_architecture.sh: line 11: config,: command not found
+
+That error usually happens because the script was executed with sh instead of bash, or because the shell doesn't support
+brace expansion.
+
+The line:
+
+mkdir -p "$ROOT"/{
+config,
+docker,
+services,
+...
+}
+is valid only in Bash.
+
+If you run:
+
+sh create_folder_architecture.sh
+or
+
+./create_folder_architecture.sh
+when /bin/sh is linked to dash (Ubuntu default), you'll get:
+
+config,: command not found
+Solution 1 (Recommended)
+Run it explicitly with Bash:
+
+chmod +x create_folder_architecture.sh
+bash create_folder_architecture.sh
+Do not use:
+
+sh create_folder_architecture.sh
+Solution 2 (Better for Production)
+I actually recommend not using brace expansion at all. It's less portable and can cause issues across different
+environments.
+
+Instead of:
+
+mkdir -p "$ROOT"/{
+config,
+docker,
+services
+}
+use:
+
+mkdir -p "$ROOT/config"
+mkdir -p "$ROOT/docker"
+mkdir -p "$ROOT/services"
+mkdir -p "$ROOT/shared"
+mkdir -p "$ROOT/scripts"
+mkdir -p "$ROOT/docs"
+mkdir -p "$ROOT/tests"
+mkdir -p "$ROOT/logs"
+mkdir -p "$ROOT/backups"
+mkdir -p "$ROOT/data"
+This version works in bash, sh, dash, and virtually any POSIX shell.
+
+My Recommendation
+Since we're building this as a production-grade platform, I suggest we improve the setup beyond a simple folder creation
+script.
+
+We can create a proper bootstrap installer (e.g., bootstrap.sh) that:
+
+Creates the folder structure
+
+Verifies Docker is installed
+
+Verifies Docker Compose is available
+
+Verifies Git is installed
+
+Creates the .env file
+
+Generates the initial docker-compose.yml
+
+Creates empty configuration files
+
+Sets correct permissions
+
+Creates a dedicated media-platform user (optional)
+
+Creates a systemd service for automatic startup (optional)
+
+This gives you a reproducible, one-command installation:
+
+sudo ./bootstrap.sh
+As the project grows, that's a much better foundation than maintaining separate setup scripts.
+
+
+it is better to give me the sh script instead of bash script
+
+Yes, I agree. Since your target environment is Ubuntu Server, it's better to write the setup scripts as POSIX-compliant
+sh scripts. They are more portable and avoid Bash-specific features like brace expansion.
+
+Here's a production-friendly create_folder_architecture.sh:
+
+#!/bin/sh
+
+set -e
+
+ROOT="/opt/media-platform"
+
+echo "Creating Media Platform directory structure..."
+
+# Root directories
+mkdir -p "$ROOT"
+mkdir -p "$ROOT/config"
+mkdir -p "$ROOT/docker"
+mkdir -p "$ROOT/services"
+mkdir -p "$ROOT/shared"
+mkdir -p "$ROOT/scripts"
+mkdir -p "$ROOT/docs"
+mkdir -p "$ROOT/tests"
+mkdir -p "$ROOT/logs"
+mkdir -p "$ROOT/backups"
+mkdir -p "$ROOT/data"
+
+# Configuration
+mkdir -p "$ROOT/config/jellyfin"
+mkdir -p "$ROOT/config/postgres"
+mkdir -p "$ROOT/config/redis"
+mkdir -p "$ROOT/config/nginx"
+
+# Data
+mkdir -p "$ROOT/data/downloads/incoming"
+mkdir -p "$ROOT/data/downloads/processing"
+mkdir -p "$ROOT/data/downloads/completed"
+mkdir -p "$ROOT/data/downloads/failed"
+
+mkdir -p "$ROOT/data/library/movies"
+mkdir -p "$ROOT/data/library/tvshows"
+mkdir -p "$ROOT/data/library/radio"
+mkdir -p "$ROOT/data/library/live-tv"
+mkdir -p "$ROOT/data/library/recordings"
+mkdir -p "$ROOT/data/library/collections"
+
+mkdir -p "$ROOT/data/subtitles"
+mkdir -p "$ROOT/data/metadata"
+mkdir -p "$ROOT/data/cache"
+mkdir -p "$ROOT/data/temp"
+
+# Shared
+mkdir -p "$ROOT/shared/database"
+mkdir -p "$ROOT/shared/events"
+mkdir -p "$ROOT/shared/models"
+mkdir -p "$ROOT/shared/clients"
+mkdir -p "$ROOT/shared/utils"
+mkdir -p "$ROOT/shared/constants"
+
+# Service list
+SERVICES="
+workflow-engine
+media-api
+telegram-service
+download-service
+analyzer-service
+metadata-service
+subtitle-service
+quality-service
+duplicate-service
+storage-service
+health-service
+live-tv-service
+radio-service
+ai-service
+"
+
+for SERVICE in $SERVICES
+do
+mkdir -p "$ROOT/services/$SERVICE/app"
+mkdir -p "$ROOT/services/$SERVICE/config"
+mkdir -p "$ROOT/services/$SERVICE/tests"
+mkdir -p "$ROOT/services/$SERVICE/logs"
+
+touch "$ROOT/services/$SERVICE/Dockerfile"
+touch "$ROOT/services/$SERVICE/requirements.txt"
+touch "$ROOT/services/$SERVICE/README.md"
+
+touch "$ROOT/services/$SERVICE/app/__init__.py"
+touch "$ROOT/services/$SERVICE/app/main.py"
+touch "$ROOT/services/$SERVICE/app/config.py"
+done
+
+# Shared files
+touch "$ROOT/shared/database/connection.py"
+touch "$ROOT/shared/database/base.py"
+
+touch "$ROOT/shared/events/publisher.py"
+touch "$ROOT/shared/events/subscriber.py"
+touch "$ROOT/shared/events/events.py"
+
+touch "$ROOT/shared/models/__init__.py"
+touch "$ROOT/shared/clients/__init__.py"
+touch "$ROOT/shared/utils/__init__.py"
+touch "$ROOT/shared/constants/__init__.py"
+
+# Scripts
+touch "$ROOT/scripts/backup.sh"
+touch "$ROOT/scripts/restore.sh"
+touch "$ROOT/scripts/update.sh"
+touch "$ROOT/scripts/cleanup.sh"
+
+chmod +x "$ROOT/scripts/"*.sh
+
+# Root files
+touch "$ROOT/docker-compose.yml"
+touch "$ROOT/.env"
+touch "$ROOT/.gitignore"
+touch "$ROOT/README.md"
+
+echo ""
+echo "========================================"
+echo "Media Platform structure created!"
+echo "Location: $ROOT"
+echo "========================================"
+Run it with:
+
+chmod +x create_folder_architecture.sh
+sudo ./create_folder_architecture.sh
+One suggestion for the project
+Rather than creating empty Python files now, I would go one step further and generate a standard FastAPI service
+template for each microservice (including main.py, requirements.txt, logging, health endpoint, Dockerfile, and
+configuration). That way, every service starts with the same structure and conventions, making the platform easier to
+maintain as it grows. I think that's a worthwhile improvement before we begin implementing the services.
+
+
+the folder structure is created. what is next
+
+Great! Now that the folder structure is in place, it's time to build the platform foundation. We should resist the
+temptation to start coding the downloader immediately. A solid foundation will save a lot of work later.
+
+Phase 1 Roadmap
+Infrastructure
+│
+├── ✅ Folder Structure
+├── Docker Compose
+├── PostgreSQL
+├── Redis
+├── Environment Configuration
+├── Shared Python Package
+└── Base Service Template
+
+Platform
+│
+├── Workflow Engine
+├── Media API
+└── Event System
+
+Media Services
+│
+├── Telegram Service
+├── Download Service
+├── Analyzer
+├── Metadata
+├── Subtitle
+├── Quality
+├── Duplicate
+├── Storage
+└── Health
+Step 1 (Next): Build the Docker Infrastructure
+This is what I recommend doing next.
+
+Instead of starting Python, let's get all infrastructure running.
+
+Containers
+Infrastructure
+
+├── PostgreSQL
+├── Redis
+├── Nginx
+└── Portainer (optional but highly recommended)
+
+Media
+
+├── Jellyfin (already running)
+
+Future
+
+├── Workflow Engine
+├── Media API
+├── Telegram Service
+└── ...
+Why PostgreSQL First?
+Every service will need it.
+
+Examples:
+
+Movies
+
+Downloads
+
+Workflow Jobs
+
+Quality Reports
+
+Duplicate Reports
+
+Storage Usage
+
+Health Reports
+
+Users (future)
+
+AI Memory (future)
+Without the database, every service will end up being rewritten later.
+
+Why Redis?
+Redis is the backbone of the platform.
+
+Instead of this:
+
+Telegram
+
+↓
+
+Downloader
+
+↓
+
+Analyzer
+We'll have:
+
+Telegram
+
+↓
+
+Redis Queue
+
+↓
+
+Workflow Engine
+
+↓
+
+Analyzer
+
+↓
+
+Metadata
+
+↓
+
+Subtitle
+This gives:
+
+retry support
+
+scalability
+
+background jobs
+
+multiple workers
+
+event-driven processing
+
+Why Nginx Now?
+Eventually you'll expose:
+
+https://media.example.com
+
+│
+
+────────┼──────────
+
+Jellyfin
+
+Media API
+
+Dashboard
+
+AI Service
+
+Future Web UI
+Adding it now means we won't need to change the network architecture later.
+
+Step 2: Environment Configuration
+Create a single .env for the entire platform.
+
+Example:
+
+POSTGRES_DB=media_platform
+POSTGRES_USER=media
+POSTGRES_PASSWORD=change_this
+
+REDIS_PORT=6379
+
+JELLYFIN_URL=http://jellyfin:8096
+
+MEDIA_ROOT=/data/library
+
+DOWNLOAD_ROOT=/data/downloads
+
+LOG_LEVEL=INFO
+Every service reads from this file.
+
+Step 3: Docker Networks
+I would separate traffic into networks.
+
+frontend
+
+Nginx
+
+backend
+
+PostgreSQL
+Redis
+Media Services
+
+media
+
+Jellyfin
+Analyzer
+This improves security and organization.
+
+Step 4: Shared Python Library
+Before creating services:
+
+shared/
+
+database/
+
+events/
+
+logging/
+
+config/
+
+models/
+
+utils/
+Every service imports from here.
+
+This avoids duplicated code.
+
+Step 5: Base Service Template
+Every service should start identically.
+
+services/
+
+metadata-service/
+
+app/
+
+api/
+
+core/
+
+models/
+
+services/
+
+workers/
+
+main.py
+
+Dockerfile
+
+requirements.txt
+
+README.md
+Now every service looks the same.
+
+What I Would NOT Build Yet
+I'd postpone:
+
+Telegram bot
+
+Subtitle downloader
+
+Metadata fetcher
+
+AI
+
+IPTV
+
+Radio
+
+Because they all depend on the infrastructure we're putting in place.
+
+Milestone After This Phase
+Once these pieces are ready:
+
+✅ Folder structure
+
+✅ Docker Compose
+
+✅ PostgreSQL
+
+✅ Redis
+
+✅ Nginx
+
+✅ Environment configuration
+
+✅ Base service template
+
+you'll have a platform skeleton. From there, implementing each new service becomes much easier because they all share
+the same conventions and infrastructure.
+
+My recommendation for the very next task
+The next deliverable should be a production-ready docker-compose setup, organized into multiple Compose files rather
+than one large file. For example:
+
+compose/
+├── infrastructure.yml
+├── media.yml
+├── services.yml
+├── monitoring.yml
+└── development.yml
+This approach scales much better than a single monolithic docker-compose.yml and lets you start only the parts you need
+during development or deployment. As the number of services grows (which it will), this modular structure becomes much
+easier to manage.
+
+
+then give me the steps for the next phase
+
+Perfect. Since we're planning this as a long-term, production-grade platform, I think we should stop thinking in terms
+of "what service do we build next?" and instead think in terms of project phases.
+
+Below is the roadmap I would follow if I were building this system from scratch.
+
+Phase 0 – Infrastructure Foundation ✅ (Current)
+Goal
+Prepare the server and project structure.
+
+Status
+✅ Ubuntu Server
+
+✅ Docker
+
+✅ Docker Compose
+
+✅ Jellyfin
+
+✅ Project folder structure
+
+Phase 1 – Platform Foundation
+Goal: Build the common infrastructure that every service depends on.
+
+1.1 Docker Infrastructure
+PostgreSQL
+
+Redis
+
+Nginx
+
+(Optional) Portainer
+
+Docker networks
+
+Persistent volumes
+
+Deliverable:
+
+docker-compose/
+infrastructure.yml
+1.2 Environment Configuration
+Create:
+
+.env
+Contains:
+
+Database
+
+Redis
+
+Jellyfin
+
+Logging
+
+Storage
+
+API Keys
+
+Deliverable:
+
+/config/.env
+1.3 Database
+Design the database.
+
+Initial tables:
+
+movies
+
+downloads
+
+workflows
+
+events
+
+users
+
+settings
+
+jobs
+Future:
+
+quality_reports
+
+duplicates
+
+health_reports
+
+iptv
+
+radio
+
+recommendations
+Deliverable:
+
+database.sql
+1.4 Shared Python Package
+Everything shared goes here.
+
+shared/
+
+database
+
+config
+
+logging
+
+events
+
+utils
+
+clients
+
+exceptions
+
+models
+
+constants
+Deliverable:
+
+shared/
+1.5 Base Service Template
+Every service should look identical.
+
+service
+
+app
+
+api
+
+workers
+
+repositories
+
+services
+
+models
+
+config
+
+tests
+Deliverable:
+
+service-template/
+Phase 2 – Core Platform
+Now build the platform itself.
+
+2.1 Workflow Engine
+The heart of everything.
+
+Responsibilities:
+
+Event routing
+
+Job scheduling
+
+Retry
+
+Pipeline execution
+
+Deliverable:
+
+workflow-engine
+2.2 Media API
+Single API entry point.
+
+Future clients:
+
+Telegram
+
+Web UI
+
+Mobile App
+
+AI
+
+Kodi
+
+Deliverable:
+
+media-api
+2.3 Event Bus
+Redis-based.
+
+Events:
+
+MOVIE_RECEIVED
+
+MOVIE_ANALYZED
+
+SUBTITLE_DOWNLOADED
+
+QUALITY_UPDATED
+
+HEALTH_SCAN_COMPLETED
+Deliverable:
+
+shared/events
+Phase 3 – Media Pipeline
+Now actual movie automation starts.
+
+3.1 Telegram Service
+Responsibilities:
+
+Monitor group
+
+Download attachments
+
+Commands
+
+Deliverable:
+
+telegram-service
+3.2 Download Service
+Handles:
+
+Queue
+
+Downloads
+
+Resume
+
+Verification
+
+Deliverable:
+
+download-service
+3.3 Analyzer Service
+Uses:
+
+FFprobe
+
+MediaInfo
+
+Extracts:
+
+Codec
+
+Resolution
+
+Audio
+
+Subtitles
+
+HDR
+
+Runtime
+Deliverable:
+
+analyzer-service
+3.4 Metadata Service
+Uses:
+
+TMDb
+
+IMDb
+
+Produces:
+
+Movie identity
+
+Poster
+
+Backdrop
+
+Collections
+
+Genres
+
+Actors
+Deliverable:
+
+metadata-service
+3.5 Subtitle Service
+Providers:
+
+OpenSubtitles
+
+SubDL
+
+SubtitleCat
+
+Deliverable:
+
+subtitle-service
+3.6 Organizer
+Moves files.
+
+Incoming
+
+↓
+
+Movies
+
+↓
+
+TV
+
+↓
+
+Collections
+Deliverable:
+
+organizer-service
+Phase 4 – Quality & Reliability
+This is where your platform becomes better than a basic downloader.
+
+4.1 Quality Service
+Compare:
+
+4K
+
+1080p
+
+HDR
+
+Atmos
+
+HEVC
+Replace inferior versions.
+
+4.2 Duplicate Service
+Find:
+
+Duplicate movies
+
+Duplicate subtitles
+
+Duplicate posters
+4.3 Storage Service
+Responsibilities:
+
+Disk usage
+
+Cleanup
+
+Archive
+
+Compression
+
+4.4 Health Service
+Nightly scans.
+
+Checks:
+
+Missing files
+
+Corruption
+
+Subtitle mismatch
+
+Metadata issues
+Phase 5 – Entertainment
+Now expand beyond movies.
+
+Live TV
+IPTV
+
+EPG
+
+Recording
+Radio
+Internet Radio
+
+Recording
+
+Metadata
+Phase 6 – User Experience
+Now users interact.
+
+Dashboard
+Shows:
+
+Downloads
+
+Library
+
+Storage
+
+Statistics
+Notifications
+Telegram:
+
+Movie Added
+
+Download Failed
+
+Subtitle Updated
+Authentication
+Users
+
+Roles
+
+Permissions
+
+Phase 7 – AI
+After everything is stable.
+
+AI Service
+Features:
+
+Recommendations
+
+Natural Search
+
+Collections
+
+Voice Commands
+
+Subtitle Translation
+Local LLM
+Ollama
+
+↓
+
+Qwen
+
+↓
+
+Llama
+
+↓
+
+Mistral
+Vector Database
+Qdrant
+
+↓
+
+Movie embeddings
+
+↓
+
+Semantic search
+Phase 8 – Future
+Later additions.
+
+Cloud Backup
+
+NAS
+
+Multi-server
+
+Music
+
+Audiobooks
+
+Podcasts
+
+Photo Library
+
+Home Assistant
+
+Android App
+
+iOS App
+
+Watch Together
+
+Analytics
+
+Plugins
+Overall Timeline
+Phase 0
+Infrastructure
+✅
+
+│
+
+▼
+
+Phase 1
+Platform Foundation
+
+│
+
+▼
+
+Phase 2
+Core Platform
+
+│
+
+▼
+
+Phase 3
+Movie Automation
+
+│
+
+▼
+
+Phase 4
+Quality & Reliability
+
+│
+
+▼
+
+Phase 5
+Entertainment
+
+│
+
+▼
+
+Phase 6
+User Experience
+
+│
+
+▼
+
+Phase 7
+AI
+
+│
+
+▼
+
+Phase 8
+Expansion
+One architectural change I'd make
+Now that we've refined the design, I'd introduce one more foundational service from the beginning:
+
+configuration-service
+Instead of every service reading configuration files directly, they would ask a central configuration service (or shared
+configuration layer) for settings. Initially it can simply load from .env and YAML files, but later it can support:
+
+Runtime configuration changes
+
+Feature flags
+
+Per-service settings
+
+Validation
+
+Secrets management
+
+Hot reload without restarting services
+
+This small addition gives you much more flexibility as the platform grows, and avoids scattering configuration logic
+across every microservice. It's much easier to add now than to retrofit later.
+
+
+need more detailed steps
+
+Yes. At this point, I think we should switch from a feature roadmap to an implementation roadmap. This project is
+becoming large enough that every phase should produce a working system.
+
+I would estimate this as a 6-12 month project, so having a proper implementation plan will help you avoid rework.
+
+Overall Development Strategy
+Instead of building service-by-service, we should build vertically.
+
+For every milestone:
+
+Infrastructure
+
+Database
+
+APIs
+
+Events
+
+Tests
+
+Docker
+
+Documentation
+
+should all be completed before moving on.
+
+Phase 1 — Platform Foundation (3–5 Days)
+Milestone
+A fully working platform skeleton.
+
+Step 1.1 Repository Setup
+media-platform/
+Tasks
+Initialize Git repository
+
+Create .gitignore
+
+Create README.md
+
+Create LICENSE
+
+Create contribution guidelines
+
+Create coding standards
+
+Decide Python version (recommend 3.12)
+
+Decide package manager (recommend uv or poetry)
+
+Configure pre-commit hooks
+
+Configure linting (ruff)
+
+Configure formatting (black)
+
+Configure typing (mypy)
+
+Deliverable
+
+Project skeleton ready
+Step 1.2 Docker Infrastructure
+Tasks
+Create compose files
+
+compose/
+
+infrastructure.yml
+
+services.yml
+
+monitoring.yml
+
+development.yml
+
+production.yml
+Create Docker networks
+
+frontend
+
+backend
+
+media
+
+monitoring
+Create Docker volumes
+
+postgres-data
+
+redis-data
+
+jellyfin-config
+
+downloads
+
+movies
+
+metadata
+
+cache
+
+logs
+
+backups
+Deliverable
+
+docker compose up
+
+works successfully
+Step 1.3 Infrastructure Services
+Install
+
+PostgreSQL
+Configure
+
+user
+
+password
+
+database
+
+backups
+
+healthcheck
+
+Redis
+Configure
+
+persistence
+
+memory policy
+
+password
+
+healthcheck
+
+Nginx
+Configure
+
+Reverse proxy
+
+/api
+
+/jellyfin
+
+/dashboard
+
+/docs
+Deliverable
+
+Infrastructure stack is healthy
+Step 1.4 Configuration System
+Create
+
+config/
+
+base.yml
+
+development.yml
+
+production.yml
+
+logging.yml
+
+quality.yml
+
+subtitles.yml
+
+storage.yml
+Environment
+
+.env
+
+.env.example
+Tasks
+
+validation
+
+defaults
+
+secrets
+
+environment overrides
+
+Deliverable
+
+Centralized configuration
+Step 1.5 Logging System
+Create
+
+shared/logging
+Capabilities
+
+structured logging
+
+JSON logs
+
+console logs
+
+file logs
+
+rotating logs
+
+request id
+
+workflow id
+
+Deliverable
+
+Every service logs identically.
+
+Step 1.6 Shared Libraries
+shared
+
+database
+
+events
+
+config
+
+clients
+
+models
+
+schemas
+
+exceptions
+
+utils
+
+logging
+
+constants
+Tasks
+
+Database helper
+
+Redis helper
+
+HTTP helper
+
+Retry helper
+
+Validation helper
+
+File helper
+
+Hash helper
+
+Deliverable
+
+Every service imports shared code.
+Step 1.7 Base Service Template
+Create template.
+
+Every service contains
+
+app
+
+api
+
+services
+
+workers
+
+repositories
+
+models
+
+schemas
+
+events
+
+config
+
+tests
+
+main.py
+Deliverable
+
+Reusable service template
+Phase 2 — Database Design (2–3 Days)
+Step 2.1 Entity Design
+Design
+
+Movies
+
+TV Shows
+
+Episodes
+
+Collections
+
+Genres
+
+People
+
+Studios
+
+Languages
+
+Countries
+
+Users
+
+Downloads
+
+Jobs
+
+Events
+
+Quality Reports
+
+Duplicate Reports
+
+Health Reports
+
+Storage Reports
+
+Radio
+
+IPTV
+
+Subtitles
+Step 2.2 Relationships
+Example
+
+Movie
+
+↓
+
+Metadata
+
+↓
+
+Subtitle
+
+↓
+
+Quality
+
+↓
+
+Health
+Step 2.3 ORM
+Choose
+
+SQLAlchemy
+
+Create
+
+BaseModel
+
+AuditModel
+
+TimestampModel
+Step 2.4 Migrations
+Alembic
+
+Deliverable
+
+Database fully versioned
+Phase 3 — Event System
+Step 3.1 Event Definitions
+MOVIE_RECEIVED
+
+MOVIE_ANALYZED
+
+MOVIE_IDENTIFIED
+
+QUALITY_CHECKED
+
+SUBTITLE_FOUND
+
+FILE_MOVED
+
+HEALTH_SCAN
+
+MOVIE_READY
+Step 3.2 Event Publisher
+Reusable library
+
+Step 3.3 Event Subscriber
+Reusable library
+
+Step 3.4 Retry Logic
+Dead Letter Queue
+
+Failure Queue
+
+Deliverable
+
+Entire platform communicates through events.
+Phase 4 — Workflow Engine
+This is the brain.
+
+Responsibilities
+
+Workflow state
+
+Retries
+
+Scheduling
+
+Parallel execution
+
+Timeout
+
+Failure recovery
+
+Audit logs
+
+Progress tracking
+
+Workflow visualization
+
+Jobs
+
+Analyze
+
+Metadata
+
+Subtitle
+
+Quality
+
+Organizer
+
+Health
+
+Notification
+Deliverable
+
+Workflow engine complete
+Phase 5 — Media API
+Responsibilities
+
+REST API
+
+Authentication
+
+Swagger
+
+Validation
+
+Pagination
+
+Filtering
+
+Rate limiting
+
+Deliverable
+
+Stable API
+Phase 6 — Downloader
+Components
+
+Telegram
+
+Downloader
+
+Queue
+
+Resume
+
+Verification
+
+Checksum
+Phase 7 — Analyzer
+Uses
+
+FFprobe
+
+MediaInfo
+
+ExifTool
+Extracts
+
+Resolution
+
+Codec
+
+Bitrate
+
+HDR
+
+Audio
+
+Subtitle
+
+Container
+
+Duration
+
+Phase 8 — Metadata
+Providers
+
+TMDb
+
+IMDb
+
+Later
+
+TVMaze
+
+TVDB
+
+Phase 9 — Subtitle
+Providers
+
+OpenSubtitles
+
+SubDL
+
+SubtitleCat
+
+Matching
+
+Language priority
+
+Encoding correction
+
+Synchronization
+
+Phase 10 — Organizer
+Responsibilities
+
+Rename
+
+Move
+
+Collections
+
+Artwork
+
+Folder naming
+
+Phase 11 — Quality Manager
+Compare
+
+Codec
+
+HDR
+
+Audio
+
+Bitrate
+
+Resolution
+
+Preferred release
+
+Phase 12 — Duplicate Manager
+Compare
+
+TMDb ID
+
+IMDb ID
+
+File hash
+
+Video fingerprint
+
+Phase 13 — Storage Manager
+Monitor
+
+Cleanup
+
+Compression
+
+Archive
+
+Disk balancing
+
+Phase 14 — Health Monitor
+Nightly scans
+
+Checks
+
+Playable
+
+Metadata
+
+Subtitles
+
+Permissions
+
+Corruption
+
+Missing files
+
+Phase 15 — Entertainment
+Live TV
+
+Radio
+
+Recording
+
+Phase 16 — Dashboard
+Downloads
+
+Storage
+
+Health
+
+Statistics
+
+Jobs
+
+Phase 17 — AI
+Recommendations
+
+Semantic Search
+
+Voice
+
+Collections
+
+Translation
+
+My Recommendation Before Writing a Single Line of Python
+Given the scale of this project, I would add one more Phase 0.5 that we haven't discussed yet:
+
+Architecture Decision Records (ADRs)
+
+Create a docs/adr/ folder and document important decisions, for example:
+
+Why FastAPI instead of Flask?
+
+Why PostgreSQL instead of SQLite?
+
+Why Redis Streams (or another messaging pattern)?
+
+Why event-driven architecture?
+
+Why separate microservices instead of a monolith?
+
+Folder naming conventions.
+
+Database naming conventions.
+
+API versioning strategy.
+
+These short documents (usually 1–2 pages each) become invaluable months later when the project grows or when you revisit
+design decisions. They also make it much easier to onboard contributors or AI coding agents because the reasoning behind
+the architecture is documented, not just the code.
+
+
+now create a detailed roadmap first in .md format
+
+I will create the roadmap as a Markdown document that can be saved directly as MEDIA_PLATFORM_ROADMAP.md.
+
+Media Automation Platform - Detailed Implementation Roadmap
+1. Project Vision
+The goal is to build a self-hosted Media Automation Platform that manages movies, TV shows, live TV, radio, and future
+AI-powered media intelligence.
+
+The platform should provide:
+
+Automated media ingestion
+
+Media analysis
+
+Metadata management
+
+Subtitle automation
+
+Quality management
+
+Duplicate detection
+
+Storage optimization
+
+Health monitoring
+
+Jellyfin integration
+
+IPTV and radio support
+
+Future AI capabilities
+
+The architecture should be modular, event-driven, Docker-based, and expandable.
+
+2. High-Level Architecture
+Users
+|
+|
+Telegram / Web UI / Apps
+|
+|
+Media API
+|
+|
+Workflow Engine
+|
+--------------------------------
+| | |
+| | |
+Downloader Processing Management
+Services Services Services
+
+| | |
+
+Telegram Analyzer Quality
+Download Metadata Duplicate
+Subtitle Storage
+Organizer Health
+
+
+|
+|
+Jellyfin Server
+
+|
+|
+Kodi / Mobile / Browser
+3. Technology Stack
+Infrastructure
+Ubuntu Server
+
+Docker
+
+Docker Compose
+
+Nginx
+
+PostgreSQL
+
+Redis
+
+Backend
+Python 3.12
+
+FastAPI
+
+SQLAlchemy
+
+Alembic
+
+Pydantic
+
+Messaging
+Redis Streams / PubSub
+
+Media Processing
+FFmpeg
+
+FFprobe
+
+MediaInfo
+
+Media Server
+Jellyfin
+
+Future AI
+Ollama
+
+Local LLM Models
+
+Vector Database (Qdrant)
+
+4. Development Phases
+Phase 0 - Server Preparation
+Goal
+Prepare the Ubuntu server.
+
+Tasks
+Install Docker
+
+Install Docker Compose
+
+Configure storage
+
+Configure permissions
+
+Install Jellyfin
+
+Verify hardware acceleration
+
+Configure firewall
+
+Deliverable
+Server ready for platform deployment.
+
+Phase 1 - Project Foundation
+Goal
+Create the development foundation.
+
+Tasks
+1. Repository Setup
+Create:
+
+media-platform/
+
+├── services/
+├── shared/
+├── compose/
+├── config/
+├── docs/
+├── scripts/
+├── tests/
+└── README.md
+Tasks:
+
+Initialize Git
+
+Add .gitignore
+
+Add documentation
+
+Define coding standards
+
+2. Docker Infrastructure
+Create:
+
+compose/
+
+├── infrastructure.yml
+├── services.yml
+├── monitoring.yml
+└── production.yml
+Add:
+
+PostgreSQL
+
+Redis
+
+Nginx
+
+Persistent volumes
+
+Docker networks
+
+3. Configuration Management
+Create:
+
+config/
+
+├── base.yml
+├── database.yml
+├── storage.yml
+├── quality.yml
+├── subtitle.yml
+└── logging.yml
+Support:
+
+Environment variables
+
+Secrets
+
+Environment overrides
+
+4. Shared Python Framework
+Create:
+
+shared/
+
+├── database/
+├── events/
+├── models/
+├── schemas/
+├── clients/
+├── logging/
+├── utils/
+└── exceptions/
+Provide:
+
+Database connection
+
+Redis client
+
+Logging
+
+Error handling
+
+Common utilities
+
+Phase 2 - Database Layer
+Goal
+Create the central data model.
+
+Core Tables
+Media
+movies
+tvshows
+episodes
+collections
+genres
+people
+studios
+Download Management
+downloads
+download_jobs
+workflow_jobs
+events
+Quality
+media_quality
+quality_rules
+Management
+duplicates
+health_reports
+storage_reports
+Entertainment
+iptv_channels
+radio_stations
+recordings
+Database Features
+Implement:
+
+SQLAlchemy models
+
+Alembic migrations
+
+Indexing
+
+Relationships
+
+Audit fields
+
+Phase 3 - Event System
+Goal
+Create communication between services.
+
+Event Examples
+MOVIE_RECEIVED
+
+MEDIA_ANALYZED
+
+METADATA_IDENTIFIED
+
+SUBTITLE_DOWNLOADED
+
+QUALITY_CHECKED
+
+FILE_ORGANIZED
+
+MEDIA_READY
+
+HEALTH_COMPLETED
+Features
+Event publishing
+
+Event subscription
+
+Retry mechanism
+
+Failed event queue
+
+Event logging
+
+Phase 4 - Workflow Engine
+Goal
+Create the automation brain.
+
+Responsibilities
+Execute workflows
+
+Track progress
+
+Handle retries
+
+Manage failures
+
+Schedule jobs
+
+Example Workflow
+Movie Received
+
+|
+v
+
+Analyze Media
+
+|
+v
+
+Identify Movie
+
+|
+v
+
+Download Subtitle
+
+|
+v
+
+Check Quality
+
+|
+v
+
+Move File
+
+|
+v
+
+Update Jellyfin
+
+|
+v
+
+Notify User
+Phase 5 - Media API
+Goal
+Provide a central API.
+
+Features
+REST API
+
+Authentication
+
+Authorization
+
+Swagger Documentation
+
+Validation
+
+Pagination
+
+APIs
+Example:
+
+/movies
+
+/downloads
+
+/jobs
+
+/storage
+
+/health
+
+/settings
+Phase 6 - Telegram Service
+Goal
+Use Telegram as the media control interface.
+
+Features
+File Upload
+User sends:
+
+Movie.mkv
+System:
+
+Receive File
+
+Create Job
+
+Start Pipeline
+Commands
+Examples:
+
+/status
+
+/downloads
+
+/library
+
+/search
+
+/help
+Phase 7 - Download Service
+Responsibilities
+Download management
+
+Queue handling
+
+Resume support
+
+Validation
+
+Temporary storage
+
+Folder flow:
+
+incoming
+
+|
+
+processing
+
+|
+
+completed
+
+|
+
+library
+Phase 8 - Media Analyzer
+Goal
+Extract media information.
+
+Using:
+
+FFprobe
+
+MediaInfo
+
+Extract:
+
+Resolution
+
+Codec
+
+HDR
+
+Audio Tracks
+
+Subtitle Tracks
+
+Bitrate
+
+Runtime
+
+Container
+Phase 9 - Metadata Service
+Goal
+Identify and enrich media.
+
+Sources:
+
+TMDb
+
+IMDb
+
+Store:
+
+Title
+
+Year
+
+Poster
+
+Backdrop
+
+Genres
+
+Actors
+
+Ratings
+
+Collections
+Phase 10 - Subtitle Management
+Goal
+Automatically manage subtitles.
+
+Features:
+
+Detect missing languages
+
+Search providers
+
+Match releases
+
+Download subtitles
+
+Rename automatically
+
+Example:
+
+Movie.mkv
+
+Movie.en.srt
+
+Movie.ml.srt
+Phase 11 - Media Organizer
+Goal
+Maintain Jellyfin-compatible structure.
+
+Example:
+
+Movies/
+
+└── Interstellar (2014)
+
+Interstellar (2014).mkv
+
+Interstellar (2014).en.srt
+
+poster.jpg
+Phase 12 - Quality Management
+Goal
+Maintain best available version.
+
+Evaluate:
+
+Resolution
+
+Codec
+
+HDR
+
+Audio
+
+Bitrate
+
+Example:
+
+1080p H264
+
+VS
+
+4K HDR HEVC
+
+|
+
+Replace old version
+Phase 13 - Duplicate Detection
+Goal
+Prevent unnecessary storage usage.
+
+Detection:
+
+TMDb ID
+
+IMDb ID
+
+File hash
+
+Media fingerprint
+
+Phase 14 - Storage Management
+Features
+Monitor:
+
+Disk usage
+
+Library size
+
+Cache
+
+Automation:
+
+Remove temporary files
+
+Remove duplicates
+
+Archive old content
+
+Phase 15 - Health Monitoring
+Scheduled Tasks
+Daily:
+
+Check missing files
+
+Check corruption
+
+Verify subtitles
+
+Verify metadata
+
+Check Jellyfin sync
+
+Phase 16 - Live TV and Radio
+Live TV
+Features:
+
+IPTV playlists
+
+EPG support
+
+Channel grouping
+
+Radio
+Features:
+
+Internet radio
+
+Favorites
+
+Recording
+
+Phase 17 - Dashboard
+Create Web UI.
+
+Features:
+
+Overview
+Library count
+
+Storage
+
+Downloads
+
+System health
+
+Management
+Jobs
+
+Settings
+
+Quality rules
+
+Users
+
+Phase 18 - AI Integration
+Goal
+Add intelligence layer.
+
+AI Service:
+
+ai-service
+
+|
+
+Ollama
+
+|
+
+LLM Models
+Features
+Smart Recommendations
+Based on:
+
+Watching history
+
+Genres
+
+Ratings
+
+Natural Language Search
+Example:
+
+"Find movies about space with emotional stories"
+
+AI Collections
+Automatically create:
+
+Sci-Fi Movies
+
+90s Classics
+
+Award Winners
+
+Voice Assistant
+Example:
+
+"Play a comedy movie"
+
+5. Final Service List
+media-platform
+
+├── media-api
+├── workflow-engine
+├── telegram-service
+├── download-service
+├── analyzer-service
+├── metadata-service
+├── subtitle-service
+├── organizer-service
+├── quality-service
+├── duplicate-service
+├── storage-service
+├── health-service
+├── live-tv-service
+├── radio-service
+└── ai-service
+6. Recommended Development Order
+1. Docker Infrastructure
+
+2. PostgreSQL
+
+3. Redis
+
+4. Shared Python Framework
+
+5. Event System
+
+6. Workflow Engine
+
+7. Media API
+
+8. Telegram Service
+
+9. Downloader
+
+10. Analyzer
+
+11. Metadata
+
+12. Subtitle
+
+13. Organizer
+
+14. Quality
+
+15. Duplicate
+
+16. Storage
+
+17. Health
+
+18. Live TV
+
+19. Radio
+
+20. Dashboard
+
+21. AI
+7. Long-Term Goal
+The final system becomes:
+
+Personal Media Operating System
+
+|
+
++-- Movies
+
++-- TV Shows
+
++-- Live TV
+
++-- Radio
+
++-- AI Assistant
+
++-- Automation Engine
+
++-- Storage Intelligence
+The architecture should allow adding new capabilities without rewriting existing services.
+
+
+You can save this directly as:
+
+```bash
+MEDIA_PLATFORM_ROADMAP.md
+Next, I recommend creating the second document: MEDIA_PLATFORM_ARCHITECTURE.md containing the actual system diagrams,
+Docker topology, service communication, database architecture, and deployment model.

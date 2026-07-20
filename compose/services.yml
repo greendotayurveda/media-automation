@@ -1,0 +1,49 @@
+# Media Automation Platform — Services Compose
+# Usage: docker compose -f compose/infrastructure.yml -f compose/services.yml up -d
+# Note: Services will be added here as each phase is implemented
+
+name: media-platform-services
+
+networks:
+  frontend:
+    name: mp_frontend
+    external: true
+  backend:
+    name: mp_backend
+    external: true
+  media:
+    name: mp_media
+    external: true
+
+volumes:
+  downloads_incoming:
+    name: mp_downloads_incoming
+  downloads_processing:
+    name: mp_downloads_processing
+  downloads_completed:
+    name: mp_downloads_completed
+  library_movies:
+    name: mp_library_movies
+  library_tvshows:
+    name: mp_library_tvshows
+  library_recordings:
+    name: mp_library_recordings
+  metadata_cache:
+    name: mp_metadata_cache
+  subtitles:
+    name: mp_subtitles
+
+services:
+  # Services will be added here as phases are completed:
+  # Phase 4: workflow-engine
+  # Phase 5: media-api
+  # Phase 6: telegram-service
+  # Phase 7: download-service
+  # Phase 8: analyzer-service
+  # Phase 9: metadata-service
+  # Phase 10: subtitle-service
+  # Phase 11: organizer-service
+  # Phase 12: quality-service
+  # Phase 13: duplicate-service
+  # Phase 14: storage-service
+  # Phase 15: health-service
