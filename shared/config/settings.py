@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "/opt/media-platform/.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -25,11 +25,11 @@ class Settings(BaseSettings):
     platform_version: str = "0.1.0"
 
     # PostgreSQL
-    postgres_host: str = "postgres"
+    postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_db: str = "media_platform"
     postgres_user: str = "media"
-    postgres_password: str
+    postgres_password: str = "Mp@Secure2024"
     postgres_pool_size: int = 10
     postgres_max_overflow: int = 20
     postgres_pool_timeout: int = 30
@@ -50,9 +50,9 @@ class Settings(BaseSettings):
         )
 
     # Redis
-    redis_host: str = "redis"
+    redis_host: str = "localhost"
     redis_port: int = 6379
-    redis_password: str
+    redis_password: str = "Redis@Secure2024"
     redis_consumer_group: str = "media-platform"
 
     @property
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     # Media API
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    api_secret_key: str
+    api_secret_key: str = "7f3d8a2c1e9b4f6d0a5c8e3b7f2d9a4c6e1b8f5d0a3c7e2b9f4d1a6c3e8b5f2"
     api_access_token_expire_minutes: int = 10080
 
     # Telegram
