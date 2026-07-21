@@ -1,6 +1,5 @@
 # Media Automation Platform — Services Compose
-# Usage: docker compose -f compose/infrastructure.yml -f compose/services.yml up -d
-# Note: Services will be added here as each phase is implemented
+# Usage (from project root): docker compose --env-file .env -f compose/infrastructure.yml -f compose/services.yml up -d --build
 
 name: media-platform-services
 
@@ -15,35 +14,42 @@ networks:
     name: mp_media
     external: true
 
-volumes:
-  downloads_incoming:
-    name: mp_downloads_incoming
-  downloads_processing:
-    name: mp_downloads_processing
-  downloads_completed:
-    name: mp_downloads_completed
-  library_movies:
-    name: mp_library_movies
-  library_tvshows:
-    name: mp_library_tvshows
-  library_recordings:
-    name: mp_library_recordings
-  metadata_cache:
-    name: mp_metadata_cache
-  subtitles:
-    name: mp_subtitles
-
 services:
-  # Services will be added here as phases are completed:
-  # Phase 4: workflow-engine
-  # Phase 5: media-api
-  # Phase 6: telegram-service
-  # Phase 7: download-service
-  # Phase 8: analyzer-service
-  # Phase 9: metadata-service
-  # Phase 10: subtitle-service
-  # Phase 11: organizer-service
-  # Phase 12: quality-service
-  # Phase 13: duplicate-service
-  # Phase 14: storage-service
-  # Phase 15: health-service
+
+  # ─────────────────────────────────────────────
+  # Phase 4: Workflow Engine (State Machine Orchestrator)
+  # ─────────────────────────────────────────────
+  workflow-engine:
+    build:
+      context: ..
+      dockerfile: services/workflow-engine/Dockerfile
+    image: media-platform/workflow-engine:latest
+    container_name: mp_workflow_engine
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    networks:
+      - backend
+    depends_on:
+      - media-api
+
+  # ─────────────────────────────────────────────
+  # Phase 5: Media API (Central Gateway API)
+  # ─────────────────────────────────────────────
+  media-api:
+    build:
+      context: ..
+      dockerfile: services/media-api/Dockerfile
+    image: media-platform/media-api:latest
+    container_name: mp_media_api
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    ports:
+      - "${API_PORT:-8000}:8000"
+    networks:
+      - frontend
+      - backend
+      - media
