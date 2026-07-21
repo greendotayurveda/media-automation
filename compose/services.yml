@@ -1,7 +1,7 @@
 # Media Automation Platform — Services Compose
 # Usage (from project root): docker compose --env-file .env -f compose/infrastructure.yml -f compose/services.yml up -d --build
 
-name: media-platform-services
+name: media-platform
 
 networks:
   frontend:

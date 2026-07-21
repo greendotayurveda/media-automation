@@ -8,7 +8,7 @@
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: media-platform-infra
+name: media-platform
 
 networks:
   frontend:
