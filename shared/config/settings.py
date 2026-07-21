@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_secret_key: str = "7f3d8a2c1e9b4f6d0a5c8e3b7f2d9a4c6e1b8f5d0a3c7e2b9f4d1a6c3e8b5f2"
     api_access_token_expire_minutes: int = 10080
+    api_cors_origins: str = "http://localhost:3000,http://localhost:8080"
 
     # Telegram
     telegram_bot_token: str = ""
