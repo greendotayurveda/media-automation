@@ -18,8 +18,15 @@ import shared.database.models  # Ensures all models are registered on Base.metad
 # this is the Alembic Config object, which provides access to the values within the .ini file.
 config = context.config
 
-# Overwrite the database URL from settings dynamically (using asyncpg driver)
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Overwrite the database URL from settings dynamically (using asyncpg driver).
+# Replace container hostname 'postgres' with '127.0.0.1' for host-side CLI migrations.
+db_url = settings.database_url
+if "@postgres:" in db_url:
+    db_url = db_url.replace("@postgres:", "@127.0.0.1:")
+elif "@postgres/" in db_url:
+    db_url = db_url.replace("@postgres/", "@127.0.0.1/")
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
