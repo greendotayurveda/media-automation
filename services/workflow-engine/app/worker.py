@@ -6,7 +6,7 @@ from typing import Any, Dict
 from shared.events.events import EventType, StreamName
 from shared.events.subscriber import EventSubscriber
 from shared.logging.logger import get_logger
-from services.workflow-engine.app.engine import WorkflowOrchestrator
+from app.engine import WorkflowOrchestrator
 
 logger = get_logger("workflow-engine-worker")
 

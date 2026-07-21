@@ -8,7 +8,7 @@ import uvicorn
 
 from shared.config.settings import settings
 from shared.logging.logger import get_logger
-from services.workflow-engine.app.worker import WorkflowWorker
+from app.worker import WorkflowWorker
 
 logger = get_logger("workflow-engine-main")
 

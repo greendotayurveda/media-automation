@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from shared.config.settings import settings
 from shared.logging.logger import get_logger
-from services.media-api.app.routers import downloads, health, jobs, movies, storage
+from app.routers import downloads, health, jobs, movies, storage
 
 logger = get_logger("media-api")
 
