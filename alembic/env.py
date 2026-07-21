@@ -18,8 +18,8 @@ import shared.database.models  # Ensures all models are registered on Base.metad
 # this is the Alembic Config object, which provides access to the values within the .ini file.
 config = context.config
 
-# Overwrite the database URL from settings dynamically
-config.set_main_option("sqlalchemy.url", settings.sync_database_url)
+# Overwrite the database URL from settings dynamically (using asyncpg driver)
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
