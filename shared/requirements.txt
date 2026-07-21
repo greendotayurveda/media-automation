@@ -1,7 +1,5 @@
-"""
-Shared Python package dependencies.
-Install with: pip install -r shared/requirements.txt
-"""
+# Shared Python package dependencies.
+# Install with: pip install -r shared/requirements.txt
 
 # Async framework
 fastapi>=0.115.0
