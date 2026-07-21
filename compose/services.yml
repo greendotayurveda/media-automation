@@ -53,3 +53,94 @@ services:
       - frontend
       - backend
       - media
+
+  # ─────────────────────────────────────────────
+  # Phase 6: Telegram Service (Media Ingestion & Bot)
+  # ─────────────────────────────────────────────
+  telegram-service:
+    build:
+      context: ..
+      dockerfile: services/telegram-service/Dockerfile
+    image: media-platform/telegram-service:latest
+    container_name: mp_telegram_service
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 8: Analyzer Service (FFprobe Specs Extractor)
+  # ─────────────────────────────────────────────
+  analyzer-service:
+    build:
+      context: ..
+      dockerfile: services/analyzer-service/Dockerfile
+    image: media-platform/analyzer-service:latest
+    container_name: mp_analyzer_service
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 9: Metadata Service (TMDb / IMDb Metadata Fetcher)
+  # ─────────────────────────────────────────────
+  metadata-service:
+    build:
+      context: ..
+      dockerfile: services/metadata-service/Dockerfile
+    image: media-platform/metadata-service:latest
+    container_name: mp_metadata_service
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 10: Subtitle Service (Subtitle Fetcher & UTF-8 Normalizer)
+  # ─────────────────────────────────────────────
+  subtitle-service:
+    build:
+      context: ..
+      dockerfile: services/subtitle-service/Dockerfile
+    image: media-platform/subtitle-service:latest
+    container_name: mp_subtitle_service
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 11: Organizer Service (Jellyfin Layout & Refresh)
+  # ─────────────────────────────────────────────
+  organizer-service:
+    build:
+      context: ..
+      dockerfile: services/organizer-service/Dockerfile
+    image: media-platform/organizer-service:latest
+    container_name: mp_organizer_service
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+      - media
