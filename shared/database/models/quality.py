@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Integer, String, Boolean, BigInteger, Text
+from sqlalchemy import ForeignKey, Integer, String, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.database.base import Base, AuditMixin
@@ -53,7 +53,7 @@ class QualityRule(Base, AuditMixin):
     __tablename__ = "quality_rules"
 
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # We should import Text from sqlalchemy if we use it
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     priority: Mapped[int] = mapped_column(Integer, default=0)  # Rule evaluation priority order
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

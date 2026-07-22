@@ -109,6 +109,9 @@ class Settings(BaseSettings):
 
     # Subtitles
     opensubtitles_api_key: str = ""
+    opensubtitles_username: str = ""
+    opensubtitles_password: str = ""
+    opensubtitles_user_agent: str = "MediaAutomationPlatform v0.1.0"
     subdl_api_key: str = ""
     subtitle_languages: str = "en,ml"
 
@@ -127,6 +130,33 @@ class Settings(BaseSettings):
 
     # Health check schedule
     health_check_schedule: str = "0 2 * * *"
+    health_scan_interval_seconds: int = 86400  # daily fallback when cron is not parsed
+
+    # Storage cleanup retention
+    storage_temp_retention_days: int = 7
+    storage_archive_retention_days: int = 14
+    storage_check_interval_seconds: int = 3600
+
+    # Ollama / AI
+    ollama_url: str = "http://ollama:11434"
+    ollama_model: str = "llama3.2"
+    ollama_timeout_seconds: int = 120
+
+    # qBittorrent WebUI
+    qbittorrent_url: str = "http://qbittorrent:8080"
+    qbittorrent_username: str = "admin"
+    qbittorrent_password: str = ""
+    qbittorrent_category: str = "media-platform"
+    qbittorrent_save_path: str = "/downloads/torrents"
+    qbittorrent_poll_interval_seconds: int = 15
+    qbittorrent_timeout_seconds: int = 86400  # 24h max wait per torrent
+
+    # Live TV / Radio / EPG
+    epg_url: str = ""
+    epg_refresh_hours: int = 12
+    recording_max_duration_seconds: int = 14400  # 4 hours
+    recording_organize_to_library: bool = True
+    public_base_url: str = "http://localhost"  # used in Jellyfin M3U stream links
 
     @field_validator("log_level")
     @classmethod

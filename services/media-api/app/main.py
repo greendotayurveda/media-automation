@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from shared.config.settings import settings
 from shared.logging.logger import get_logger
-from app.routers import downloads, health, jobs, movies, storage
+from app.routers import ai, downloads, duplicates, entertainment, health, jobs, movies, storage
 
 logger = get_logger("media-api")
 
@@ -35,6 +35,9 @@ app.include_router(downloads.router)
 app.include_router(jobs.router)
 app.include_router(health.router)
 app.include_router(storage.router)
+app.include_router(duplicates.router)
+app.include_router(ai.router)
+app.include_router(entertainment.router)
 
 
 @app.get("/", include_in_schema=False)

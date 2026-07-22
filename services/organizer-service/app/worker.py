@@ -37,7 +37,6 @@ class OrganizerWorker(EventSubscriber):
         logger.info("Starting file organization", correlation_id=correlation_id)
         result = await self.organizer.organize_movie(payload)
 
-        # Publish FILE_ORGANIZED to Workflow Engine
         await self.publisher.publish(
             event_type=EventType.FILE_ORGANIZED,
             payload={**payload, **result, "correlation_id": correlation_id},
@@ -45,7 +44,20 @@ class OrganizerWorker(EventSubscriber):
             correlation_id=correlation_id,
         )
 
-        # Publish JELLYFIN_REFRESHED to notify workflow completion
+        if result.get("upgrade_applied"):
+            await self.publisher.publish(
+                event_type=EventType.QUALITY_UPGRADED,
+                payload={**payload, **result, "correlation_id": correlation_id},
+                source_service="organizer-service",
+                correlation_id=correlation_id,
+            )
+            logger.info(
+                "Published QUALITY_UPGRADED",
+                replaced=result.get("replaced_file_path"),
+                archived=result.get("archived_file_path"),
+                correlation_id=correlation_id,
+            )
+
         await self.publisher.publish(
             event_type=EventType.JELLYFIN_REFRESHED,
             payload={**payload, **result, "correlation_id": correlation_id},

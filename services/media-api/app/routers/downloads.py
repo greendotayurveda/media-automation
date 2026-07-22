@@ -20,8 +20,10 @@ publisher = EventPublisher(StreamName.DOWNLOADS)
 
 class CreateDownloadRequest(BaseModel):
     title: str
-    source: str = "telegram"
-    file_path: str
+    source: str = "http"
+    file_path: Optional[str] = None
+    url: Optional[str] = None
+    magnet: Optional[str] = None
 
 
 class DownloadResponse(BaseModel):
@@ -45,22 +47,43 @@ async def list_downloads(db: AsyncSession = Depends(get_db)):
 
 @router.post("", response_model=DownloadResponse, status_code=201)
 async def create_download(req: CreateDownloadRequest, db: AsyncSession = Depends(get_db)):
-    """Queue a new download manually via API."""
+    """Queue HTTP, local, magnet, or .torrent URL download."""
+    link = req.magnet or req.url
+    if not req.file_path and not link:
+        raise HTTPException(status_code=400, detail="file_path, url, or magnet is required")
+
+    is_torrent = bool(req.magnet) or (
+        bool(link)
+        and (
+            link.lower().startswith("magnet:")
+            or link.lower().startswith("qbittorrent:")
+            or link.lower().endswith(".torrent")
+        )
+    )
+    source = "torrent" if is_torrent else req.source
+
     download = Download(
         title=req.title,
-        source=req.source,
+        source=source,
         status="queued",
         dest_path=req.file_path,
+        external_id=link,
     )
     db.add(download)
     await db.commit()
     await db.refresh(download)
 
-    # Publish event to trigger workflow engine
     correlation_id = str(uuid.uuid4())
     await publisher.publish(
         event_type=EventType.DOWNLOAD_QUEUED,
-        payload={"download_id": download.id, "file_path": req.file_path},
+        payload={
+            "download_id": download.id,
+            "file_path": req.file_path,
+            "url": link,
+            "magnet": req.magnet or (link if link and link.lower().startswith("magnet:") else None),
+            "title": req.title,
+            "correlation_id": correlation_id,
+        },
         source_service="media-api",
         correlation_id=correlation_id,
     )

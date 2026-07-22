@@ -4,7 +4,7 @@ Shared file operations utilities (async-capable).
 import os
 import shutil
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import aiofiles
 
@@ -55,3 +55,99 @@ def safe_move(src: Union[str, Path], dest: Union[str, Path]) -> None:
         shutil.move(str(src), str(dest))
     except Exception as exc:
         raise FileOperationError(f"Failed to move file from {src} to {dest}", error=str(exc))
+
+
+def safe_replace(src: Union[str, Path], dest: Union[str, Path]) -> None:
+    """
+    Move src onto dest, removing an existing dest file first if needed.
+    """
+    src_path = Path(src)
+    dest_path = Path(dest)
+    try:
+        os.makedirs(dest_path.parent, exist_ok=True)
+        if dest_path.exists() and dest_path.resolve() != src_path.resolve():
+            dest_path.unlink()
+        shutil.move(str(src_path), str(dest_path))
+    except Exception as exc:
+        raise FileOperationError(f"Failed to replace {dest} with {src}", error=str(exc))
+
+
+def archive_file(path: Union[str, Path], archive_dir: Union[str, Path]) -> Optional[str]:
+    """
+    Move a file into an archive directory. Returns archived path or None if missing.
+    """
+    src = Path(path)
+    if not src.exists():
+        return None
+    try:
+        dest_dir = Path(archive_dir)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / src.name
+        # Avoid collisions
+        if dest.exists():
+            stem, suffix = src.stem, src.suffix
+            idx = 1
+            while dest.exists():
+                dest = dest_dir / f"{stem}.old{idx}{suffix}"
+                idx += 1
+        shutil.move(str(src), str(dest))
+        return str(dest)
+    except Exception as exc:
+        raise FileOperationError(f"Failed to archive file: {path}", error=str(exc))
+
+
+def cleanup_old_files(
+    root: Union[str, Path],
+    older_than_days: int,
+    *,
+    recursive: bool = True,
+) -> dict:
+    """
+    Delete files under root older than older_than_days.
+    Returns counts of deleted files/bytes and any errors encountered.
+    """
+    import time
+
+    root_path = Path(root)
+    deleted_files = 0
+    deleted_bytes = 0
+    errors: list[str] = []
+
+    if not root_path.exists():
+        return {"deleted_files": 0, "deleted_bytes": 0, "errors": []}
+
+    cutoff = time.time() - (older_than_days * 86400)
+    iterator = root_path.rglob("*") if recursive else root_path.iterdir()
+
+    for path in iterator:
+        if not path.is_file():
+            continue
+        try:
+            if path.stat().st_mtime < cutoff:
+                size = path.stat().st_size
+                path.unlink()
+                deleted_files += 1
+                deleted_bytes += size
+        except OSError as exc:
+            errors.append(f"{path}: {exc}")
+
+    # Remove empty directories after file cleanup
+    if recursive:
+        for dirpath in sorted(root_path.rglob("*"), reverse=True):
+            if dirpath.is_dir():
+                try:
+                    next(dirpath.iterdir())
+                except StopIteration:
+                    try:
+                        dirpath.rmdir()
+                    except OSError:
+                        pass
+                except OSError:
+                    pass
+
+    return {
+        "deleted_files": deleted_files,
+        "deleted_bytes": deleted_bytes,
+        "errors": errors,
+    }
+

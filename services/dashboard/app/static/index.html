@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Media Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <p class="brand-name">Media Platform</p>
+        <p class="brand-sub">Library · Live TV · Radio</p>
+      </div>
+    </div>
+    <nav class="nav tabs" id="main-nav">
+      <button type="button" class="tab active" data-view="overview">Overview</button>
+      <button type="button" class="tab" data-view="livetv">Live TV</button>
+      <button type="button" class="tab" data-view="guide">Guide</button>
+      <button type="button" class="tab" data-view="radio">Radio</button>
+      <button type="button" class="tab" data-view="recordings">Recordings</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Overview -->
+    <section class="view active" id="view-overview">
+      <section class="hero">
+        <h1>Your library at a glance</h1>
+        <p class="lede">Movies, jobs, storage, and live entertainment in one place.</p>
+      </section>
+      <section class="metrics" id="metrics">
+        <article class="metric"><p class="metric-label">Movies</p><p class="metric-value" id="movie-count">—</p></article>
+        <article class="metric"><p class="metric-label">Storage free</p><p class="metric-value" id="storage-free">—</p></article>
+        <article class="metric"><p class="metric-label">Health issues</p><p class="metric-value" id="health-issues">—</p></article>
+        <article class="metric"><p class="metric-label">Recent jobs</p><p class="metric-value" id="job-count">—</p></article>
+      </section>
+      <section class="panels">
+        <div class="panel">
+          <div class="panel-head"><h2>Recent jobs</h2><button type="button" id="refresh" class="btn">Refresh</button></div>
+          <ul class="job-list" id="job-list"><li class="muted">Loading…</li></ul>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Library sample</h2></div>
+          <ul class="movie-list" id="movie-list"><li class="muted">Loading…</li></ul>
+        </div>
+      </section>
+    </section>
+
+    <!-- Live TV -->
+    <section class="view" id="view-livetv">
+      <section class="hero compact">
+        <h1>Live TV</h1>
+        <p class="lede">Play IPTV channels. Import an M3U playlist to get started.</p>
+      </section>
+      <div class="player-shell">
+        <video id="tv-player" controls playsinline></video>
+        <div class="now-playing">
+          <p class="np-label">Now playing</p>
+          <p class="np-title" id="tv-now-title">Select a channel</p>
+          <p class="np-meta" id="tv-now-meta"></p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input id="m3u-url" class="input" type="url" placeholder="M3U playlist URL" />
+        <button type="button" class="btn" id="btn-import-m3u">Import M3U</button>
+        <button type="button" class="btn ghost" id="btn-refresh-channels">Refresh</button>
+        <select id="channel-group" class="input select"><option value="">All groups</option></select>
+      </div>
+      <div class="channel-grid" id="channel-grid"><p class="muted">Loading channels…</p></div>
+    </section>
+
+    <!-- Guide -->
+    <section class="view" id="view-guide">
+      <section class="hero compact">
+        <h1>TV Guide</h1>
+        <p class="lede">EPG now &amp; next. Set <code>EPG_URL</code> (XMLTV) then refresh.</p>
+      </section>
+      <div class="toolbar">
+        <input id="epg-url" class="input" type="url" placeholder="Optional XMLTV URL override" />
+        <button type="button" class="btn" id="btn-epg-refresh">Refresh EPG</button>
+      </div>
+      <div class="guide-list" id="guide-list"><p class="muted">Loading guide…</p></div>
+    </section>
+
+    <!-- Radio -->
+    <section class="view" id="view-radio">
+      <section class="hero compact">
+        <h1>Radio</h1>
+        <p class="lede">Stream internet radio. Add stations and favorite the ones you use.</p>
+      </section>
+      <div class="player-shell audio">
+        <audio id="radio-player" controls></audio>
+        <div class="now-playing">
+          <p class="np-label">Now playing</p>
+          <p class="np-title" id="radio-now-title">Select a station</p>
+        </div>
+      </div>
+      <form class="toolbar form-grid" id="radio-form">
+        <input name="name" class="input" placeholder="Station name" required />
+        <input name="stream_url" class="input" placeholder="Stream URL" required />
+        <input name="genre" class="input" placeholder="Genre" />
+        <button type="submit" class="btn">Add station</button>
+      </form>
+      <div class="station-list" id="station-list"><p class="muted">Loading stations…</p></div>
+    </section>
+
+    <!-- Recordings -->
+    <section class="view" id="view-recordings">
+      <section class="hero compact">
+        <h1>Recordings</h1>
+        <p class="lede">Schedule captures from IPTV or radio. Files land in library/recordings.</p>
+      </section>
+      <form class="toolbar form-grid" id="recording-form">
+        <input name="title" class="input" placeholder="Title" required />
+        <select name="source_type" class="input select"><option value="iptv">IPTV</option><option value="radio">Radio</option></select>
+        <input name="source_id" class="input" placeholder="Channel / station ID" required />
+        <input name="scheduled_start" class="input" type="datetime-local" required />
+        <input name="scheduled_end" class="input" type="datetime-local" required />
+        <button type="submit" class="btn">Schedule</button>
+      </form>
+      <ul class="recording-list" id="recording-list"><li class="muted">Loading…</li></ul>
+      <p class="hint">Jellyfin Live TV: add M3U <code>/api/v1/entertainment/export/jellyfin.m3u</code> and XMLTV <code>/api/v1/entertainment/export/jellyfin.xmltv</code></p>
+    </section>
+
+    <p class="status" id="status"></p>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

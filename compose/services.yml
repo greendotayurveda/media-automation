@@ -180,3 +180,199 @@ services:
     networks:
       - backend
       - media
+
+  # ─────────────────────────────────────────────
+  # Phase 12: Quality Service (Score / Upgrade Decision)
+  # ─────────────────────────────────────────────
+  quality-service:
+    build:
+      context: ..
+      dockerfile: services/quality-service/Dockerfile
+    image: media-platform/quality-service:latest
+    container_name: mp_quality_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 7: Download Service
+  # ─────────────────────────────────────────────
+  download-service:
+    build:
+      context: ..
+      dockerfile: services/download-service/Dockerfile
+    image: media-platform/download-service:latest
+    container_name: mp_download_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      QBITTORRENT_URL: ${QBITTORRENT_URL:-http://qbittorrent:8080}
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+      # Same download root as qBittorrent so content_path is readable after completion
+      - /opt/media-platform/data/downloads:/downloads
+    networks:
+      - backend
+    depends_on:
+      - media-api
+
+  # Optional bundled qBittorrent (or point QBITTORRENT_URL at your existing instance)
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: mp_qbittorrent
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-UTC}
+      WEBUI_PORT: 8080
+    volumes:
+      - /opt/media-platform/data/qbittorrent/config:/config
+      - /opt/media-platform/data/downloads:/downloads
+    ports:
+      - "8085:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    networks:
+      - backend
+    profiles:
+      - torrents
+
+  # ─────────────────────────────────────────────
+  # Phase 13: Duplicate Detection
+  # ─────────────────────────────────────────────
+  duplicate-service:
+    build:
+      context: ..
+      dockerfile: services/duplicate-service/Dockerfile
+    image: media-platform/duplicate-service:latest
+    container_name: mp_duplicate_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 14: Storage Management
+  # ─────────────────────────────────────────────
+  storage-service:
+    build:
+      context: ..
+      dockerfile: services/storage-service/Dockerfile
+    image: media-platform/storage-service:latest
+    container_name: mp_storage_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 15: Health Monitoring
+  # ─────────────────────────────────────────────
+  health-service:
+    build:
+      context: ..
+      dockerfile: services/health-service/Dockerfile
+    image: media-platform/health-service:latest
+    container_name: mp_health_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
+  # Phase 16: Live TV / Radio / Recordings
+  # ─────────────────────────────────────────────
+  entertainment-service:
+    build:
+      context: ..
+      dockerfile: services/entertainment-service/Dockerfile
+    image: media-platform/entertainment-service:latest
+    container_name: mp_entertainment_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+      - media
+
+  # ─────────────────────────────────────────────
+  # Phase 18: AI Integration (Ollama client)
+  # ─────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ..
+      dockerfile: services/ai-service/Dockerfile
+    image: media-platform/ai-service:latest
+    container_name: mp_ai_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+    networks:
+      - backend
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mp_ollama
+    restart: unless-stopped
+    volumes:
+      - /opt/media-platform/data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - backend
+    profiles:
+      - ai
+
+  # ─────────────────────────────────────────────
+  # Phase 17: Dashboard
+  # ─────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ..
+      dockerfile: services/dashboard/Dockerfile
+    image: media-platform/dashboard:latest
+    container_name: mp_dashboard
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      - media-api

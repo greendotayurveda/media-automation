@@ -20,7 +20,7 @@ from shared.database.models.subtitle import Subtitle
 from shared.database.models.duplicate import Duplicate
 from shared.database.models.health import HealthReport, HealthIssue
 from shared.database.models.storage import StorageReport
-from shared.database.models.entertainment import IptvChannel, RadioStation, Recording
+from shared.database.models.entertainment import IptvChannel, RadioStation, Recording, EpgProgram
 
 __all__ = [
     "Movie", "Genre", "Person", "Studio", "Collection",
@@ -33,5 +33,5 @@ __all__ = [
     "Duplicate",
     "HealthReport", "HealthIssue",
     "StorageReport",
-    "IptvChannel", "RadioStation", "Recording",
+    "IptvChannel", "RadioStation", "Recording", "EpgProgram",
 ]

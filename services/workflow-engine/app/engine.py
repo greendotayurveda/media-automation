@@ -127,13 +127,25 @@ class WorkflowOrchestrator:
             )
 
         elif event_type == EventType.QUALITY_CHECKED:
-            await self._complete_step_and_trigger_next(
-                correlation_id=correlation_id,
-                completed_step_name="verify_quality",
-                next_event_type=EventType.FILE_ORGANIZE_REQUESTED,
-                next_publisher=self.file_publisher,
-                output_payload=payload,
-            )
+            # Inferior copies skip organize; better/first copies continue.
+            if payload.get("decision") == "keep_existing":
+                await self._complete_step(
+                    correlation_id=correlation_id,
+                    completed_step_name="verify_quality",
+                    output_payload=payload,
+                )
+                await self._finalize_workflow(
+                    correlation_id=correlation_id,
+                    status="completed",
+                )
+            else:
+                await self._complete_step_and_trigger_next(
+                    correlation_id=correlation_id,
+                    completed_step_name="verify_quality",
+                    next_event_type=EventType.FILE_ORGANIZE_REQUESTED,
+                    next_publisher=self.file_publisher,
+                    output_payload=payload,
+                )
 
         elif event_type == EventType.FILE_ORGANIZED:
             await self._complete_step_and_trigger_next(
@@ -150,15 +162,13 @@ class WorkflowOrchestrator:
         elif "failed" in event_type.value:
             await self._finalize_workflow(correlation_id=correlation_id, status="failed", error_details=payload)
 
-    async def _complete_step_and_trigger_next(
+    async def _complete_step(
         self,
         correlation_id: str,
         completed_step_name: str,
-        next_event_type: EventType,
-        next_publisher: EventPublisher,
         output_payload: Dict[str, Any],
-    ) -> None:
-        """Mark a step as completed and publish the event for the next stage."""
+    ) -> bool:
+        """Mark a workflow step completed. Returns False if job was not found."""
         async with get_db_session() as db:
             result = await db.execute(
                 select(WorkflowJob).where(WorkflowJob.correlation_id == correlation_id)
@@ -166,9 +176,8 @@ class WorkflowOrchestrator:
             job = result.scalar_one_or_none()
             if not job:
                 logger.warning("No workflow job found for correlation_id", correlation_id=correlation_id)
-                return
+                return False
 
-            # Update completed step
             step_result = await db.execute(
                 select(WorkflowStep).where(
                     WorkflowStep.job_id == job.id,
@@ -181,8 +190,20 @@ class WorkflowOrchestrator:
                 step.output_data = output_payload
                 step.completed_at = datetime.now(timezone.utc)
                 await db.commit()
+        return True
 
-        # Publish next stage event
+    async def _complete_step_and_trigger_next(
+        self,
+        correlation_id: str,
+        completed_step_name: str,
+        next_event_type: EventType,
+        next_publisher: EventPublisher,
+        output_payload: Dict[str, Any],
+    ) -> None:
+        """Mark a step as completed and publish the event for the next stage."""
+        if not await self._complete_step(correlation_id, completed_step_name, output_payload):
+            return
+
         await next_publisher.publish(
             event_type=next_event_type,
             payload={**output_payload, "correlation_id": correlation_id},

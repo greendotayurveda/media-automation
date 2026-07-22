@@ -16,7 +16,7 @@ class WorkflowWorker(EventSubscriber):
     Subscriber listening to stream events across all pipeline domains.
     """
 
-    # We listen to stream:workflows and stream:media by default
+    # Completion + ingestion triggers land on stream:workflows
     stream = StreamName.WORKFLOWS
     consumer_name = "orchestrator"
 

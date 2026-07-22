@@ -42,10 +42,22 @@ class SubtitleWorker(EventSubscriber):
         logger.info("Starting subtitle processing", file=file_path, correlation_id=correlation_id)
         result = await self.manager.fetch_and_normalize_subtitles(payload)
 
+        # Pipeline advances on either outcome (workflow handles both events).
+        if result.get("subtitles_count", 0) > 0:
+            out_event = EventType.SUBTITLE_DOWNLOADED
+        else:
+            out_event = EventType.SUBTITLE_NOT_FOUND
+
         await self.publisher.publish(
-            event_type=EventType.SUBTITLE_DOWNLOADED,
+            event_type=out_event,
             payload={**payload, **result, "correlation_id": correlation_id},
             source_service="subtitle-service",
             correlation_id=correlation_id,
         )
-        logger.info("Completed subtitle processing & published event", correlation_id=correlation_id)
+        logger.info(
+            "Completed subtitle processing & published event",
+            event_type=out_event.value,
+            count=result.get("subtitles_count", 0),
+            missing=result.get("languages_missing"),
+            correlation_id=correlation_id,
+        )

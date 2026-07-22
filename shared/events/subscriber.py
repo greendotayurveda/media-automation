@@ -41,7 +41,9 @@ class EventSubscriber(ABC):
 
     def __init__(self, service_name: str) -> None:
         self.service_name = service_name
-        self.group = settings.redis_consumer_group
+        # Per-service groups so multiple services on one stream each get a copy
+        # (shared group would compete and ACK-drop events other services need).
+        self.group = f"{settings.redis_consumer_group}:{service_name}"
         self._running = False
         self._dead_letter = EventPublisher(StreamName.DEAD_LETTER)
 
