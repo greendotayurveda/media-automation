@@ -26,6 +26,8 @@ services:
     image: media-platform/workflow-engine:latest
     container_name: mp_workflow_engine
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -44,6 +46,8 @@ services:
     image: media-platform/media-api:latest
     container_name: mp_media_api
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -64,6 +68,8 @@ services:
     image: media-platform/telegram-service:latest
     container_name: mp_telegram_service
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -82,6 +88,8 @@ services:
     image: media-platform/analyzer-service:latest
     container_name: mp_analyzer_service
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -100,6 +108,8 @@ services:
     image: media-platform/metadata-service:latest
     container_name: mp_metadata_service
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -118,6 +128,8 @@ services:
     image: media-platform/subtitle-service:latest
     container_name: mp_subtitle_service
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -136,6 +148,8 @@ services:
     image: media-platform/organizer-service:latest
     container_name: mp_organizer_service
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
