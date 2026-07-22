@@ -277,12 +277,16 @@ class TelegramBotHandler:
             return
 
         correlation_id = str(uuid.uuid4())
+        ext_id = (url or torrent_file)
+        if ext_id and len(ext_id) > 255:
+            ext_id = ext_id[:255]
+
         async with get_db_session() as db:
             download = Download(
                 title=title[:500],
                 source="torrent",
                 status="queued",
-                external_id=url or torrent_file,
+                external_id=ext_id,
             )
             db.add(download)
             await db.commit()

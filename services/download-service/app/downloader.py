@@ -278,8 +278,8 @@ class Downloader:
                 source = "http"
 
             ext_id = (url or torrent_file)
-            if ext_id and len(ext_id) > 2048:
-                ext_id = ext_id[:2048]
+            if ext_id and len(ext_id) > 255:
+                ext_id = ext_id[:255]
 
             row = Download(
                 title=title,

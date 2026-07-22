@@ -62,12 +62,13 @@ async def create_download(req: CreateDownloadRequest, db: AsyncSession = Depends
     )
     source = "torrent" if is_torrent else req.source
 
+    ext_id = link[:255] if link else None
     download = Download(
-        title=req.title,
+        title=req.title[:500] if req.title else "download",
         source=source,
         status="queued",
         dest_path=req.file_path,
-        external_id=link,
+        external_id=ext_id,
     )
     db.add(download)
     await db.commit()
