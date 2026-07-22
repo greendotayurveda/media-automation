@@ -86,7 +86,12 @@ class EventSubscriber(ABC):
                 await self._poll(redis)
             except asyncio.CancelledError:
                 break
+            except (aioredis.TimeoutError, asyncio.TimeoutError) as exc:
+                # Normal idle polling timeout when no stream events arrive
+                continue
             except Exception as exc:
+                if "Timeout reading" in str(exc):
+                    continue
                 logger.error("Subscriber poll error", error=str(exc))
                 await asyncio.sleep(5)
 
