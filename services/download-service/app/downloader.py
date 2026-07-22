@@ -143,6 +143,7 @@ class Downloader:
 
                 state = torrent.get("state") or ""
                 progress = float(torrent.get("progress") or 0.0) * 100.0
+                dlspeed = int(torrent.get("dlspeed") or 0)
                 eta = torrent.get("eta")
                 name = torrent.get("name") or title
                 eta_seconds = None
