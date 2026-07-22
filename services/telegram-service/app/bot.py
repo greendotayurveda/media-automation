@@ -155,7 +155,7 @@ class TelegramBotHandler:
 
         builder = Application.builder().token(settings.telegram_bot_token or "dummy_token")
 
-        if settings.telegram_bot_api_url and settings.telegram_api_id:
+        if settings.telegram_bot_api_url:
             base_url = f"{settings.telegram_bot_api_url.rstrip('/')}/bot"
             base_file_url = f"{settings.telegram_bot_api_url.rstrip('/')}/file/bot"
             builder.base_url(base_url)
