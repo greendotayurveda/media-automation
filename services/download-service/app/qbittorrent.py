@@ -94,6 +94,21 @@ def normalize_qbittorrent_url(link: str) -> str:
     return link
 
 
+def _is_add_successful(resp: httpx.Response) -> bool:
+    if resp.status_code in (200, 409):
+        try:
+            data = resp.json()
+            if isinstance(data, dict):
+                return int(data.get("failure_count", 0)) == 0
+        except Exception:
+            pass
+        body = resp.text.strip().lower()
+        if "fails." in body or "failed" in body:
+            return False
+        return True
+    return False
+
+
 class QBittorrentClient:
     """Minimal async WebUI client for add + poll + file discovery."""
 
@@ -157,7 +172,7 @@ class QBittorrentClient:
             data["tags"] = tag
 
         resp = await self._client.post("/api/v2/torrents/add", data=data)
-        if resp.status_code not in (200, 409) or "fail" in resp.text.lower():
+        if not _is_add_successful(resp):
             raise DownloadError(
                 "qBittorrent failed to add torrent",
                 status=resp.status_code,
@@ -191,7 +206,7 @@ class QBittorrentClient:
         if tag:
             data["tags"] = tag
         resp = await self._client.post("/api/v2/torrents/add", data=data, files=files)
-        if resp.status_code not in (200, 409) or "fail" in resp.text.lower():
+        if not _is_add_successful(resp):
             raise DownloadError(
                 "qBittorrent failed to add torrent file",
                 status=resp.status_code,
