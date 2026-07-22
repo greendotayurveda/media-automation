@@ -16,9 +16,9 @@ class Download(Base, AuditMixin):
     __tablename__ = "downloads"
 
     # Job tracking
-    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
     source: Mapped[str] = mapped_column(String(100), default="telegram")  # telegram, torrent, usenet, http
-    external_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)  # Infohash, Telegram Message ID, etc.
+    external_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True, index=True)  # Infohash, Telegram Message ID, Magnet Link, etc.
     status: Mapped[str] = mapped_column(String(50), default="queued", index=True)  # queued, downloading, paused, completed, failed, verifying
 
     # Progress tracking

@@ -277,12 +277,16 @@ class Downloader:
             elif url:
                 source = "http"
 
+            ext_id = (url or torrent_file)
+            if ext_id and len(ext_id) > 2048:
+                ext_id = ext_id[:2048]
+
             row = Download(
                 title=title,
                 source=source,
                 status="queued",
                 dest_path=file_path,
-                external_id=url or torrent_file,
+                external_id=ext_id,
             )
             db.add(row)
             await db.commit()
