@@ -1,6 +1,7 @@
 """
 FastAPI router for Storage Reports (/api/v1/storage).
 """
+import os
 import shutil
 
 import httpx
@@ -14,7 +15,12 @@ router = APIRouter(prefix="/api/v1/storage", tags=["Storage"])
 @router.get("")
 async def get_storage_stats():
     """Get current storage usage metrics (local fallback + storage-service report)."""
-    total, used, free = shutil.disk_usage(settings.media_root)
+    try:
+        os.makedirs(settings.media_root, exist_ok=True)
+        total, used, free = shutil.disk_usage(settings.media_root)
+    except Exception:
+        total, used, free = shutil.disk_usage("/")
+
     payload = {
         "media_root": str(settings.media_root),
         "total_bytes": total,

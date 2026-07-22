@@ -53,6 +53,8 @@ services:
       REDIS_HOST: redis
     ports:
       - "${API_PORT:-8000}:8000"
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
     networks:
       - frontend
       - backend
