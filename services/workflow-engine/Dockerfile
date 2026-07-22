@@ -23,6 +23,6 @@ COPY services/workflow-engine/app /app/app
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:8001/health || exit 1
 
 CMD ["python", "app/main.py"]
