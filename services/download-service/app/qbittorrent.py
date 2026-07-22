@@ -25,7 +25,7 @@ DONE_STATES = {
     "forcedUP",
     "checkingUP",
 }
-FAIL_STATES = {"error", "missingFiles"}
+FAIL_STATES = {"missingFiles"}
 
 
 def is_torrent_link(text: str) -> bool:
@@ -164,10 +164,11 @@ class QBittorrentClient:
         url = normalize_qbittorrent_url(url)
         data: Dict[str, Any] = {
             "urls": url,
-            "savepath": self.save_path,
             "category": self.category,
             "paused": "false",
         }
+        if self.save_path and self.save_path != "/downloads":
+            data["savepath"] = self.save_path
         if tag:
             data["tags"] = tag
 
