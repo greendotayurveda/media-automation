@@ -8,6 +8,7 @@ import uvicorn
 from shared.config.settings import settings
 from shared.logging.logger import get_logger
 from app.bot import TelegramBotHandler
+from app.notifier import TelegramStatusNotifier
 
 logger = get_logger("telegram-service")
 
@@ -28,6 +29,10 @@ async def main():
         await bot_app.start()
         await bot_app.updater.start_polling()
         logger.info("Telegram bot polling started")
+
+        notifier = TelegramStatusNotifier(bot=bot_app.bot)
+        asyncio.create_task(notifier.start())
+        logger.info("Telegram live progress notifier started")
     else:
         logger.warning("TELEGRAM_BOT_TOKEN not configured. Bot polling disabled (HTTP health check running).")
 

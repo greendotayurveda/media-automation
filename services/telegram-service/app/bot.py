@@ -323,6 +323,7 @@ class TelegramBotHandler:
                 "source": "telegram_torrent",
                 "chat_id": chat_id,
                 "user_id": user_id,
+                "message_id": status_message.message_id,
                 "correlation_id": correlation_id,
             },
             source_service="telegram-service",

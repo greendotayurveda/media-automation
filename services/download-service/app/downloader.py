@@ -34,6 +34,9 @@ class Downloader:
     Processes DOWNLOAD_QUEUED jobs: HTTP, local intake, or qBittorrent magnets/torrents.
     """
 
+    def __init__(self) -> None:
+        self.downloads_bus = EventPublisher(StreamName.DOWNLOADS)
+
     async def process(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         download_id = payload.get("download_id")
         url = payload.get("url") or payload.get("source_url") or payload.get("magnet")
@@ -48,11 +51,11 @@ class Downloader:
 
         try:
             if torrent_file and Path(torrent_file).exists():
-                dest = await self._download_torrent(download_id, url=None, torrent_file=Path(torrent_file), title=title)
+                dest = await self._download_torrent(download_id, url=None, torrent_file=Path(torrent_file), title=title, payload=payload)
             elif url and is_torrent_link(url):
-                dest = await self._download_torrent(download_id, url=url, torrent_file=None, title=title)
+                dest = await self._download_torrent(download_id, url=url, torrent_file=None, title=title, payload=payload)
             elif url and self._is_http_url(url) and url.lower().endswith(".torrent"):
-                dest = await self._download_torrent(download_id, url=url, torrent_file=None, title=title)
+                dest = await self._download_torrent(download_id, url=url, torrent_file=None, title=title, payload=payload)
             elif url and self._is_http_url(url):
                 dest = await self._download_http(download_id, url, title)
             elif file_path and Path(file_path).exists():
@@ -103,6 +106,7 @@ class Downloader:
         url: Optional[str],
         torrent_file: Optional[Path],
         title: str,
+        payload: Optional[Dict[str, Any]] = None,
     ) -> str:
         client = QBittorrentClient()
         if not client.is_configured:
@@ -162,6 +166,25 @@ class Downloader:
                     eta_seconds=eta_seconds,
                     title=name[:500],
                 )
+
+                if payload:
+                    try:
+                        await self.downloads_bus.publish(
+                            event_type=EventType.DOWNLOAD_PROGRESS,
+                            payload={
+                                **payload,
+                                "download_id": download_id,
+                                "progress": round(min(progress, 99.5), 1),
+                                "download_speed_bps": dlspeed,
+                                "eta_seconds": eta_seconds,
+                                "title": name[:500],
+                                "state": state,
+                            },
+                            source_service="download-service",
+                            correlation_id=payload.get("correlation_id"),
+                        )
+                    except Exception:
+                        pass
 
                 if state in FAIL_STATES:
                     consecutive_fails += 1
