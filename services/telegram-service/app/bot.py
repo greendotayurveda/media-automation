@@ -149,11 +149,21 @@ class TelegramBotHandler:
             await msg.edit_text(f"❌ Failed to process file: {str(exc)}")
 
     def build_application(self) -> Application:
-        """Build python-telegram-bot application with commands and document filters."""
+        """Build python-telegram-bot application supporting local bot API server for 2GB file downloads."""
         if not settings.telegram_bot_token:
             logger.warning("TELEGRAM_BOT_TOKEN is not configured!")
 
-        app = Application.builder().token(settings.telegram_bot_token or "dummy_token").build()
+        builder = Application.builder().token(settings.telegram_bot_token or "dummy_token")
+
+        if settings.telegram_bot_api_url and settings.telegram_api_id:
+            base_url = f"{settings.telegram_bot_api_url.rstrip('/')}/bot"
+            base_file_url = f"{settings.telegram_bot_api_url.rstrip('/')}/file/bot"
+            builder.base_url(base_url)
+            builder.base_file_url(base_file_url)
+            builder.local_mode(True)
+            logger.info("Enabled Local Telegram Bot API server for 2GB file downloads", url=base_url)
+
+        app = builder.build()
 
         app.add_handler(CommandHandler("start", self.start_command))
         app.add_handler(CommandHandler("id", self.id_command))

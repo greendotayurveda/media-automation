@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_allowed_chat_ids: str = ""
     telegram_admin_ids: str = ""
+    telegram_api_id: str = ""
+    telegram_api_hash: str = ""
+    telegram_bot_api_url: str = "http://telegram-bot-api:8081"
 
     @property
     def telegram_allowed_chat_id_list(self) -> List[int]:
