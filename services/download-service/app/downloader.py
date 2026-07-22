@@ -143,15 +143,22 @@ class Downloader:
 
                 state = torrent.get("state") or ""
                 progress = float(torrent.get("progress") or 0.0) * 100.0
-                dlspeed = int(torrent.get("dlspeed") or 0)
                 eta = torrent.get("eta")
                 name = torrent.get("name") or title
+                eta_seconds = None
+                if eta is not None:
+                    try:
+                        val = int(eta)
+                        if 0 <= val <= 2147483647 and val != 8640000:
+                            eta_seconds = val
+                    except (ValueError, TypeError):
+                        pass
 
                 await self._update(
                     download_id,
                     progress=round(min(progress, 99.5), 2),
                     download_speed_bps=dlspeed,
-                    eta_seconds=int(eta) if eta not in (None, 8640000) else None,
+                    eta_seconds=eta_seconds,
                     title=name[:500],
                 )
 

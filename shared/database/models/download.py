@@ -24,7 +24,7 @@ class Download(Base, AuditMixin):
     # Progress tracking
     progress: Mapped[float] = mapped_column(Float, default=0.0)  # 0.0 to 100.0
     download_speed_bps: Mapped[int] = mapped_column(BigInteger, default=0)
-    eta_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    eta_seconds: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
     # Local file mapping
     temp_path: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
