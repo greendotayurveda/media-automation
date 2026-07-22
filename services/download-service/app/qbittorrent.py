@@ -157,12 +157,14 @@ class QBittorrentClient:
             data["tags"] = tag
 
         resp = await self._client.post("/api/v2/torrents/add", data=data)
-        if resp.status_code != 200 or "fail" in resp.text.lower():
+        if resp.status_code not in (200, 409) or "fail" in resp.text.lower():
             raise DownloadError(
                 "qBittorrent failed to add torrent",
                 status=resp.status_code,
                 body=resp.text[:300],
             )
+        if resp.status_code == 409:
+            logger.info("Torrent already exists in qBittorrent, tracking existing download", url=url)
 
         info_hash = magnet_info_hash(url) if url.lower().startswith("magnet:") else None
         if not info_hash:
@@ -189,12 +191,14 @@ class QBittorrentClient:
         if tag:
             data["tags"] = tag
         resp = await self._client.post("/api/v2/torrents/add", data=data, files=files)
-        if resp.status_code != 200 or "fail" in resp.text.lower():
+        if resp.status_code not in (200, 409) or "fail" in resp.text.lower():
             raise DownloadError(
                 "qBittorrent failed to add torrent file",
                 status=resp.status_code,
                 body=resp.text[:300],
             )
+        if resp.status_code == 409:
+            logger.info("Torrent file already exists in qBittorrent, tracking existing download", file=torrent_path.name)
         info_hash = await self._find_recent_hash(prefer_name=torrent_path.stem)
         if not info_hash:
             raise DownloadError("Torrent file added but infohash could not be resolved")
