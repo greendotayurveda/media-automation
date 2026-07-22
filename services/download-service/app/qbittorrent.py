@@ -200,10 +200,11 @@ class QBittorrentClient:
         assert self._client is not None
         files = {"torrents": (torrent_path.name, torrent_path.read_bytes(), "application/x-bittorrent")}
         data: Dict[str, Any] = {
-            "savepath": self.save_path,
             "category": self.category,
             "paused": "false",
         }
+        if self.save_path and self.save_path != "/downloads":
+            data["savepath"] = self.save_path
         if tag:
             data["tags"] = tag
         resp = await self._client.post("/api/v2/torrents/add", data=data, files=files)
