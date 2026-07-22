@@ -157,8 +157,12 @@ class Downloader:
 
                 if state in FAIL_STATES:
                     consecutive_fails += 1
-                    logger.warning("qBittorrent reported transient fail state, waiting...", state=state, fails=consecutive_fails)
-                    if consecutive_fails >= 5:
+                    logger.warning("qBittorrent reported transient fail state, attempting auto-resume...", state=state, fails=consecutive_fails)
+                    try:
+                        await client.resume_torrent(info_hash)
+                    except Exception:
+                        pass
+                    if consecutive_fails >= 10:
                         raise DownloadError(
                             f"qBittorrent torrent failed with state={state}",
                             hash=info_hash,

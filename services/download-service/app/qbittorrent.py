@@ -211,6 +211,14 @@ class QBittorrentClient:
         items = resp.json()
         return items[0] if items else None
 
+    async def resume_torrent(self, info_hash: str) -> None:
+        assert self._client is not None
+        await self._client.post("/api/v2/torrents/resume", data={"hashes": info_hash})
+
+    async def recheck_torrent(self, info_hash: str) -> None:
+        assert self._client is not None
+        await self._client.post("/api/v2/torrents/recheck", data={"hashes": info_hash})
+
     async def list_files(self, info_hash: str) -> List[Dict[str, Any]]:
         assert self._client is not None
         resp = await self._client.get("/api/v2/torrents/files", params={"hash": info_hash})
