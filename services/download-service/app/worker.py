@@ -1,6 +1,7 @@
 """
 Download Service Redis Streams subscriber worker.
 """
+import asyncio
 from typing import Any, Dict
 
 from shared.events.events import EventType, StreamName
@@ -34,7 +35,7 @@ class DownloadWorker(EventSubscriber):
         raw_event: Dict[str, str],
     ) -> None:
         correlation_id = payload.get("correlation_id") or raw_event.get("correlation_id")
-        logger.info("Download queued", correlation_id=correlation_id, payload_keys=list(payload.keys()))
+        logger.info("Download queued — launching async download task", correlation_id=correlation_id, payload_keys=list(payload.keys()))
 
         await self.publisher.publish(
             event_type=EventType.DOWNLOAD_STARTED,
@@ -49,6 +50,9 @@ class DownloadWorker(EventSubscriber):
             correlation_id=correlation_id,
         )
 
+        asyncio.create_task(self._process_in_background(payload, correlation_id))
+
+    async def _process_in_background(self, payload: Dict[str, Any], correlation_id: Any) -> None:
         try:
             result = await self.downloader.process(payload)
             merged = {**payload, **result, "correlation_id": correlation_id}
@@ -89,4 +93,4 @@ class DownloadWorker(EventSubscriber):
                 source_service="download-service",
                 correlation_id=correlation_id,
             )
-            raise
+            logger.error("Download task failed", error=str(exc), correlation_id=str(correlation_id))
