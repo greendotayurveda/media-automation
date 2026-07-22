@@ -16,6 +16,8 @@ from sqlalchemy import select
 from shared.config.settings import settings
 from shared.database.connection import get_db_session
 from shared.database.models.download import Download
+from shared.events.events import EventType, StreamName
+from shared.events.publisher import EventPublisher
 from shared.exceptions.base import DownloadError, DownloadTimeoutError
 from shared.logging.logger import get_logger
 from app.qbittorrent import (
