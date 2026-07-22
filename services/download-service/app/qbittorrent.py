@@ -229,7 +229,9 @@ class QBittorrentClient:
 
     async def resume_torrent(self, info_hash: str) -> None:
         assert self._client is not None
-        await self._client.post("/api/v2/torrents/resume", data={"hashes": info_hash})
+        resp = await self._client.post("/api/v2/torrents/start", data={"hashes": info_hash})
+        if resp.status_code == 404:
+            await self._client.post("/api/v2/torrents/resume", data={"hashes": info_hash})
 
     async def recheck_torrent(self, info_hash: str) -> None:
         assert self._client is not None
