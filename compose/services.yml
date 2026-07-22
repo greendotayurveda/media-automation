@@ -65,6 +65,7 @@ services:
     image: aiogram/telegram-bot-api:latest
     container_name: mp_telegram_bot_api
     restart: unless-stopped
+    command: ["--local", "--api-id=${TELEGRAM_API_ID}", "--api-hash=${TELEGRAM_API_HASH}"]
     env_file:
       - ../.env
     environment:

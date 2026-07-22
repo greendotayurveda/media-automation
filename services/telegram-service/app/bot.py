@@ -115,9 +115,9 @@ class TelegramBotHandler:
         )
 
         try:
-            tg_file = await context.bot.get_file(document.file_id)
+            tg_file = await context.bot.get_file(document.file_id, read_timeout=600)
             save_path = self.incoming_dir / file_name
-            await tg_file.download_to_drive(custom_path=save_path)
+            await tg_file.download_to_drive(custom_path=save_path, read_timeout=600)
 
             correlation_id = str(uuid.uuid4())
             logger.info("Downloaded Telegram group file", file_name=file_name, path=str(save_path), chat_id=chat.id)
