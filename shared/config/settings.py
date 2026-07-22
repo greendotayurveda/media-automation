@@ -88,9 +88,17 @@ class Settings(BaseSettings):
 
     @property
     def telegram_allowed_chat_id_list(self) -> List[int]:
-        if not self.telegram_allowed_chat_ids:
+        if not self.telegram_allowed_chat_ids or self.telegram_allowed_chat_ids == "placeholder":
             return []
-        return [int(i.strip()) for i in self.telegram_allowed_chat_ids.split(",") if i.strip()]
+        result = []
+        for i in self.telegram_allowed_chat_ids.split(","):
+            val = i.strip()
+            if val and val != "placeholder":
+                try:
+                    result.append(int(val))
+                except ValueError:
+                    pass
+        return result
 
     # TMDb
     tmdb_api_key: str = ""
