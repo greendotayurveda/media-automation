@@ -128,6 +128,7 @@ class Downloader:
             poll = max(5, int(settings.qbittorrent_poll_interval_seconds))
             deadline = time.monotonic() + int(settings.qbittorrent_timeout_seconds)
 
+            consecutive_fails = 0
             while True:
                 if time.monotonic() > deadline:
                     raise DownloadTimeoutError(
@@ -155,10 +156,15 @@ class Downloader:
                 )
 
                 if state in FAIL_STATES:
-                    raise DownloadError(
-                        f"qBittorrent torrent failed with state={state}",
-                        hash=info_hash,
-                    )
+                    consecutive_fails += 1
+                    logger.warning("qBittorrent reported transient fail state, waiting...", state=state, fails=consecutive_fails)
+                    if consecutive_fails >= 5:
+                        raise DownloadError(
+                            f"qBittorrent torrent failed with state={state}",
+                            hash=info_hash,
+                        )
+                else:
+                    consecutive_fails = 0
 
                 completed = progress >= 99.9 or state in DONE_STATES or int(torrent.get("amount_left") or 1) == 0
                 if completed:

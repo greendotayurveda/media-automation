@@ -147,7 +147,7 @@ class Settings(BaseSettings):
     qbittorrent_username: str = "admin"
     qbittorrent_password: str = ""
     qbittorrent_category: str = "media-platform"
-    qbittorrent_save_path: str = "/downloads/torrents"
+    qbittorrent_save_path: str = "/downloads"
     qbittorrent_poll_interval_seconds: int = 15
     qbittorrent_timeout_seconds: int = 86400  # 24h max wait per torrent
 
