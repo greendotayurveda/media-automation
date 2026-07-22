@@ -129,7 +129,8 @@ class QBittorrentClient:
             "/api/v2/auth/login",
             data={"username": self.username, "password": self.password},
         )
-        if resp.status_code != 200 or resp.text.strip().lower() != "ok.":
+        body = resp.text.strip().lower()
+        if resp.status_code not in (200, 204) or body == "fails.":
             raise DownloadError(
                 "qBittorrent login failed",
                 status=resp.status_code,
