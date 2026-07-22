@@ -35,15 +35,33 @@ _TORRENT_URL_RE = re.compile(
 )
 
 
-def _extract_torrent_links(text: str) -> list[str]:
-    if not text:
+def _extract_torrent_links(message_or_text) -> list[str]:
+    if not message_or_text:
         return []
+
+    texts: list[str] = []
+    if isinstance(message_or_text, str):
+        texts.append(message_or_text)
+    else:
+        msg = message_or_text
+        if getattr(msg, "text", None):
+            texts.append(msg.text)
+        if getattr(msg, "caption", None):
+            texts.append(msg.caption)
+
+        # Extract URLs from hyperlinks / text_link entities in forwarded posts
+        entities = list(getattr(msg, "entities", []) or []) + list(getattr(msg, "caption_entities", []) or [])
+        for entity in entities:
+            if getattr(entity, "url", None):
+                texts.append(entity.url)
+
     found: list[str] = []
-    for pattern in (_MAGNET_RE, _QBIT_RE, _TORRENT_URL_RE):
-        for match in pattern.finditer(text):
-            link = match.group(0).rstrip(").,];")
-            if link not in found:
-                found.append(link)
+    for text in texts:
+        for pattern in (_MAGNET_RE, _QBIT_RE, _TORRENT_URL_RE):
+            for match in pattern.finditer(text):
+                link = match.group(0).rstrip(").,];")
+                if link not in found:
+                    found.append(link)
     return found
 
 
@@ -178,15 +196,16 @@ class TelegramBotHandler:
             await msg.edit_text(f"❌ Failed to process file: {str(exc)}")
 
     async def handle_text_links(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Detect magnet / torrent / qbittorrent links in plain text messages."""
+        """Detect magnet / torrent / qbittorrent links in plain text messages, captions, and forwarded posts."""
+        if not update.message:
+            return
         user = update.effective_user
         chat = update.effective_chat
-        text = update.message.text or update.message.caption or ""
 
         if not self._is_allowed(user.id, chat.id):
             return
 
-        links = _extract_torrent_links(text)
+        links = _extract_torrent_links(update.message)
         if not links:
             return
 
@@ -343,7 +362,7 @@ class TelegramBotHandler:
             MessageHandler(filters.Document.ALL | filters.VIDEO | filters.ATTACHMENT, self.handle_document)
         )
         app.add_handler(
-            MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text_links)
+            MessageHandler((filters.TEXT | filters.CAPTION) & ~filters.COMMAND, self.handle_text_links)
         )
 
         return app
