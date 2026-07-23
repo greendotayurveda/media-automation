@@ -31,6 +31,8 @@ services:
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
     networks:
       - backend
     depends_on:
