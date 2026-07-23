@@ -108,12 +108,25 @@ class WorkflowOrchestrator:
                 output_payload=payload,
             )
 
-        elif event_type == EventType.METADATA_IDENTIFIED:
+        elif event_type == EventType.METADATA_IDENTIFIED or event_type == EventType.METADATA_IDENTIFY_FAILED:
+            if event_type == EventType.METADATA_IDENTIFY_FAILED:
+                logger.warning("Metadata identification failed, continuing pipeline with raw file parameters", correlation_id=correlation_id)
             await self._complete_step_and_trigger_next(
                 correlation_id=correlation_id,
                 completed_step_name="identify_metadata",
                 next_event_type=EventType.SUBTITLE_SEARCH_REQUESTED,
                 next_publisher=self.subtitle_publisher,
+                output_payload=payload,
+            )
+
+        elif event_type == EventType.MEDIA_ANALYZED or event_type == EventType.MEDIA_ANALYZE_FAILED:
+            if event_type == EventType.MEDIA_ANALYZE_FAILED:
+                logger.warning("Media analysis failed, continuing pipeline", correlation_id=correlation_id)
+            await self._complete_step_and_trigger_next(
+                correlation_id=correlation_id,
+                completed_step_name="analyze_media",
+                next_event_type=EventType.METADATA_IDENTIFY_REQUESTED,
+                next_publisher=self.metadata_publisher,
                 output_payload=payload,
             )
 

@@ -39,13 +39,28 @@ class MetadataWorker(EventSubscriber):
             logger.error("Metadata identify requested without file_path", payload=payload)
             return
 
-        logger.info("Starting metadata identification", file=file_path, correlation_id=correlation_id)
-        metadata = await self.fetcher.identify_and_store_movie(file_path, payload)
-
-        await self.publisher.publish(
-            event_type=EventType.METADATA_IDENTIFIED,
-            payload={**payload, **metadata, "correlation_id": correlation_id},
-            source_service="metadata-service",
-            correlation_id=correlation_id,
-        )
-        logger.info("Identified metadata & published event", title=metadata["title"], correlation_id=correlation_id)
+        try:
+            metadata = await self.fetcher.identify_and_store_movie(file_path, payload)
+            await self.publisher.publish(
+                event_type=EventType.METADATA_IDENTIFIED,
+                payload={**payload, **metadata, "correlation_id": correlation_id},
+                source_service="metadata-service",
+                correlation_id=correlation_id,
+            )
+            logger.info("Identified metadata & published event", title=metadata["title"], correlation_id=correlation_id)
+        except Exception as exc:
+            logger.warning("Metadata identification threw exception, publishing fallback METADATA_IDENTIFIED", error=str(exc))
+            from pathlib import Path
+            file_name = Path(file_path).name if file_path else "Unknown"
+            clean_title, year = self.fetcher.parse_filename(file_name)
+            fallback = {
+                "title": clean_title,
+                "year": year,
+                "file_path": file_path,
+            }
+            await self.publisher.publish(
+                event_type=EventType.METADATA_IDENTIFIED,
+                payload={**payload, **fallback, "correlation_id": correlation_id},
+                source_service="metadata-service",
+                correlation_id=correlation_id,
+            )
