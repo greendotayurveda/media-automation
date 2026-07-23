@@ -1,0 +1,32 @@
+name: Deploy to Home Server
+
+
+on:
+
+  push:
+
+    branches:
+      - main
+
+
+
+jobs:
+
+  deploy:
+
+
+    runs-on:
+
+      - self-hosted
+      - linux
+      - homeserver
+
+
+
+    steps:
+
+      - name: Update server
+
+        run: |
+
+          /scripts/update-media.sh
