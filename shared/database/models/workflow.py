@@ -3,7 +3,7 @@ Workflow Engine and Platform Event logging models: WorkflowJob, WorkflowStep, Pl
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import ForeignKey, Integer, String, Text, JSON, DateTime, func

@@ -171,23 +171,25 @@ class MetadataFetcher:
             params["year"] = str(year)
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, params=params)
-            if resp.status_code != 200:
-                raise MetadataError(f"TMDb search failed status={resp.status_code}")
+            try:
+                resp = await client.get(url, params=params)
+                if resp.status_code != 200:
+                    logger.warning("TMDb search returned non-200 status, falling back to parsed filename title", status=resp.status_code, title=title)
+                    return {"title": title, "release_date": f"{year}-01-01" if year else None}
 
-            results = resp.json().get("results", [])
-            if not results:
-                logger.warning("No TMDb results found for title", title=title, year=year)
+                results = resp.json().get("results", [])
+                if not results:
+                    logger.warning("No TMDb results found for title, using parsed title", title=title, year=year)
+                    return {"title": title, "release_date": f"{year}-01-01" if year else None}
+
+                first = results[0]
+                movie_id = first.get("id")
+                # Enrich with imdb_id
+                details_url = f"{self.base_url}/movie/{movie_id}"
+                details_resp = await client.get(details_url, params={"api_key": self.api_key})
+                if details_resp.status_code == 200:
+                    return details_resp.json()
+                return first
+            except Exception as exc:
+                logger.warning("TMDb query failed, falling back to parsed title", error=str(exc))
                 return {"title": title, "release_date": f"{year}-01-01" if year else None}
-
-            top = results[0]
-            movie_id = top.get("id")
-            if movie_id:
-                detail_resp = await client.get(
-                    f"{self.base_url}/movie/{movie_id}",
-                    params={"api_key": self.api_key},
-                )
-                if detail_resp.status_code == 200:
-                    detail = detail_resp.json()
-                    top = {**top, **detail}
-            return top
