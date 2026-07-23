@@ -203,7 +203,7 @@ class Downloader:
                 else:
                     consecutive_fails = 0
 
-                completed = progress >= 99.9 or state in DONE_STATES or int(torrent.get("amount_left") or 1) == 0
+                completed = progress >= 99.0 or state in DONE_STATES or int(torrent.get("amount_left") or 1) == 0
                 if completed:
                     content_path = torrent.get("content_path") or torrent.get("save_path") or settings.qbittorrent_save_path
                     video = await client.pick_primary_video(info_hash, content_path)

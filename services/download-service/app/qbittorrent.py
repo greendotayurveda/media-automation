@@ -24,6 +24,8 @@ DONE_STATES = {
     "queuedUP",
     "forcedUP",
     "checkingUP",
+    "seeding",
+    "completed",
 }
 FAIL_STATES = {"missingFiles"}
 
