@@ -59,9 +59,13 @@ class MetadataFetcher:
         imdb_id = tmdb_data.get("imdb_id")
         tmdb_id = tmdb_data.get("id")
         resolved_title = tmdb_data.get("title") or clean_title
-        resolved_year = year or (
-            int(tmdb_data["release_date"][:4]) if tmdb_data.get("release_date") else None
-        )
+        resolved_year = year
+        rel_date = tmdb_data.get("release_date")
+        if not resolved_year and rel_date and len(str(rel_date)) >= 4:
+            try:
+                resolved_year = int(str(rel_date)[:4])
+            except (ValueError, TypeError):
+                resolved_year = None
 
         async with get_db_session() as db:
             movie = await self._find_existing_movie(db, tmdb_id=tmdb_id, imdb_id=imdb_id)
