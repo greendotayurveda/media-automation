@@ -47,20 +47,40 @@ class MetadataWorker(EventSubscriber):
                 source_service="metadata-service",
                 correlation_id=correlation_id,
             )
-            logger.info("Identified metadata & published event", title=metadata["title"], correlation_id=correlation_id)
-        except Exception as exc:
-            logger.warning("Metadata identification threw exception, publishing fallback METADATA_IDENTIFIED", error=str(exc))
-            from pathlib import Path
-            file_name = Path(file_path).name if file_path else "Unknown"
-            clean_title, year = self.fetcher.parse_filename(file_name)
-            fallback = {
-                "title": clean_title,
-                "year": year,
-                "file_path": file_path,
-            }
-            await self.publisher.publish(
-                event_type=EventType.METADATA_IDENTIFIED,
-                payload={**payload, **fallback, "correlation_id": correlation_id},
-                source_service="metadata-service",
+            logger.info(
+                "Identified metadata & published event",
+                title=metadata["title"],
                 correlation_id=correlation_id,
             )
+        except Exception as exc:
+            logger.warning(
+                "Metadata identification failed; storing fallback movie",
+                error=str(exc),
+                correlation_id=correlation_id,
+            )
+            try:
+                fallback = await self.fetcher.store_fallback_movie(file_path, payload)
+                await self.publisher.publish(
+                    event_type=EventType.METADATA_IDENTIFIED,
+                    payload={**payload, **fallback, "correlation_id": correlation_id},
+                    source_service="metadata-service",
+                    correlation_id=correlation_id,
+                )
+            except Exception as fallback_exc:
+                logger.error(
+                    "Fallback movie store failed; publishing METADATA_IDENTIFY_FAILED",
+                    error=str(fallback_exc),
+                    correlation_id=correlation_id,
+                )
+                await self.publisher.publish(
+                    event_type=EventType.METADATA_IDENTIFY_FAILED,
+                    payload={
+                        **payload,
+                        "file_path": file_path,
+                        "error": str(exc),
+                        "fallback_error": str(fallback_exc),
+                        "correlation_id": correlation_id,
+                    },
+                    source_service="metadata-service",
+                    correlation_id=correlation_id,
+                )

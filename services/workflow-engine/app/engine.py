@@ -99,7 +99,12 @@ class WorkflowOrchestrator:
             if file_path:
                 await self.start_movie_pipeline(correlation_id=correlation_id, file_path=file_path)
 
-        elif event_type == EventType.MEDIA_ANALYZED:
+        elif event_type == EventType.MEDIA_ANALYZED or event_type == EventType.MEDIA_ANALYZE_FAILED:
+            if event_type == EventType.MEDIA_ANALYZE_FAILED:
+                logger.warning(
+                    "Media analysis failed, continuing pipeline",
+                    correlation_id=correlation_id,
+                )
             await self._complete_step_and_trigger_next(
                 correlation_id=correlation_id,
                 completed_step_name="analyze_media",
@@ -108,9 +113,7 @@ class WorkflowOrchestrator:
                 output_payload=payload,
             )
 
-        elif event_type == EventType.METADATA_IDENTIFIED or event_type == EventType.METADATA_IDENTIFY_FAILED:
-            if event_type == EventType.METADATA_IDENTIFY_FAILED:
-                logger.warning("Metadata identification failed, continuing pipeline with raw file parameters", correlation_id=correlation_id)
+        elif event_type == EventType.METADATA_IDENTIFIED:
             await self._complete_step_and_trigger_next(
                 correlation_id=correlation_id,
                 completed_step_name="identify_metadata",
@@ -119,15 +122,21 @@ class WorkflowOrchestrator:
                 output_payload=payload,
             )
 
-        elif event_type == EventType.MEDIA_ANALYZED or event_type == EventType.MEDIA_ANALYZE_FAILED:
-            if event_type == EventType.MEDIA_ANALYZE_FAILED:
-                logger.warning("Media analysis failed, continuing pipeline", correlation_id=correlation_id)
-            await self._complete_step_and_trigger_next(
+        elif event_type == EventType.METADATA_IDENTIFY_FAILED:
+            # Without movie_id, quality/organize cannot proceed safely.
+            logger.warning(
+                "Metadata identification failed without fallback; marking workflow failed",
                 correlation_id=correlation_id,
-                completed_step_name="analyze_media",
-                next_event_type=EventType.METADATA_IDENTIFY_REQUESTED,
-                next_publisher=self.metadata_publisher,
+            )
+            await self._complete_step(
+                correlation_id=correlation_id,
+                completed_step_name="identify_metadata",
                 output_payload=payload,
+            )
+            await self._finalize_workflow(
+                correlation_id=correlation_id,
+                status="failed",
+                error_details=payload,
             )
 
         elif event_type == EventType.SUBTITLE_DOWNLOADED or event_type == EventType.SUBTITLE_NOT_FOUND:

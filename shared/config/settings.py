@@ -103,9 +103,23 @@ class Settings(BaseSettings):
                     pass
         return result
 
+    # Metadata providers (comma-separated order). OMDb is recommended in regions where TMDb is ISP-blocked (e.g. India).
+    metadata_providers: str = "omdb,tmdb"
+
     # TMDb
     tmdb_api_key: str = ""
     tmdb_base_url: str = "https://api.themoviedb.org/3"
+    tmdb_image_base_url: str = "https://image.tmdb.org/t/p"
+    # Optional HTTP(S) proxy for TMDb only (e.g. http://user:pass@host:8080)
+    tmdb_http_proxy: str = ""
+
+    # OMDb (IMDb-backed; free key at https://www.omdbapi.com/apikey.aspx)
+    omdb_api_key: str = ""
+    omdb_base_url: str = "https://www.omdbapi.com/"
+
+    @property
+    def metadata_provider_list(self) -> List[str]:
+        return [p.strip().lower() for p in self.metadata_providers.split(",") if p.strip()]
 
     # Subtitles
     opensubtitles_api_key: str = ""

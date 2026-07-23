@@ -8,7 +8,7 @@ Target layout assumes Ubuntu + Docker Compose, with data under `/opt/media-platf
 
 ---
 
-## Current platform surface (as of this treesddd)
+## Current platform surface (as of this tree)
 
 | Area | What ships |
 |------|------------|
@@ -55,7 +55,7 @@ Infrastructure (`compose/infrastructure.yml`): Postgres, Redis, Nginx.
 - Docker Engine + Compose plugin
 - Git
 - Enough disk for library + torrents + Docker images
-- Outbound HTTPS for TMDb, OpenSubtitles, SubDL, EPG, Ollama pulls
+- Outbound HTTPS for OMDb and/or TMDb (TMDb often blocked on Indian ISPs — prefer OMDb), OpenSubtitles, SubDL, EPG, Ollama pulls
 
 First-time host prep (optional helper):
 
@@ -106,7 +106,7 @@ Whenever `.env.sample` gains keys in a pull, those keys must be added to the ser
 |------|-----------|
 | DB / Redis | `POSTGRES_*`, `REDIS_*` (must match Compose) |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_IDS`, `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` |
-| Metadata | `TMDB_API_KEY` |
+| Metadata | `TMDB_API_KEY` and/or `OMDB_API_KEY` (see India note below) |
 | Subtitles | `OPENSUBTITLES_API_KEY` (+ optional `OPENSUBTITLES_USERNAME` / `OPENSUBTITLES_PASSWORD`), `SUBDL_API_KEY`, `SUBTITLE_LANGUAGES` |
 | Jellyfin | `JELLYFIN_URL`, `JELLYFIN_API_KEY`, `JELLYFIN_USER_ID` |
 | Public URL | `PUBLIC_BASE_URL` (host used in Live TV M3U links, e.g. `http://192.168.1.10` or your domain) |
@@ -115,6 +115,10 @@ Whenever `.env.sample` gains keys in a pull, those keys must be added to the ser
 
 | Feature | Variables / notes |
 |---------|-------------------|
+| Metadata order | `METADATA_PROVIDERS` — comma list, e.g. `omdb,tmdb` (India) or `tmdb,omdb` |
+| TMDb proxy | `TMDB_HTTP_PROXY` — HTTP(S) proxy URL if you keep TMDb behind a proxy |
+| TMDb images | `TMDB_IMAGE_BASE_URL` (default `https://image.tmdb.org/t/p`) |
+| OMDb | `OMDB_API_KEY`, `OMDB_BASE_URL` (default `https://www.omdbapi.com/`) |
 | Quality prefs | `QUALITY_PREFERENCE`, `QUALITY_PREFER_HDR`, `QUALITY_PREFER_HEVC` |
 | qBittorrent | `QBITTORRENT_URL`, `QBITTORRENT_USERNAME`, `QBITTORRENT_PASSWORD`, `QBITTORRENT_SAVE_PATH=/downloads/torrents`, `QBITTORRENT_CATEGORY`, `QBITTORRENT_POLL_INTERVAL_SECONDS`, `QBITTORRENT_TIMEOUT_SECONDS` |
 | Live TV EPG | `EPG_URL` (XMLTV or `.xml.gz`), `EPG_REFRESH_HOURS` |
@@ -123,6 +127,24 @@ Whenever `.env.sample` gains keys in a pull, those keys must be added to the ser
 | AI | `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_SECONDS` (use Compose `--profile ai`) |
 
 Change default passwords from sample values before exposing ports. Placeholder subtitle API keys are ignored by the subtitle service.
+
+### Metadata from India (TMDb ISP blocks)
+
+Many Indian ISPs block `api.themoviedb.org` / `image.tmdb.org`. The metadata service tries providers in `METADATA_PROVIDERS` order and skips failures (timeouts/blocks) instead of stalling on TMDb alone.
+
+**Recommended on Indian servers:**
+
+```bash
+OMDB_API_KEY=your_omdb_key          # free: https://www.omdbapi.com/apikey.aspx
+METADATA_PROVIDERS=omdb,tmdb        # OMDb first; TMDb only if reachable
+# optional if you route TMDb via a proxy/VPN:
+# TMDB_HTTP_PROXY=http://127.0.0.1:7890
+# TMDB_API_KEY=your_tmdb_key
+```
+
+OMDb supplies title/year/plot/poster/`imdb_id` (no `tmdb_id`). That is enough for the pipeline and Jellyfin matching by name. If both keys are empty, identify falls back to filename-only stub movies.
+
+Filename cleaning strips common pirate-site prefixes (`www`, `*MovieRulz*`, `TamilRockers`, `software`, broken brackets) before the OMDb/TMDb query, so names like `www 5MovieRulz software - Jana Nayagan ( (2026).mkv` resolve as **Jana Nayagan (2026)**.
 
 ---
 
@@ -245,6 +267,18 @@ docker compose --env-file .env \
 4. For large files: local Bot API is started as `telegram-bot-api` — set `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`
 5. Test file: upload a small `.mkv` / `.mp4` to the group
 6. Test torrent: paste a magnet / `.torrent` URL / attach a `.torrent` file (needs qBittorrent configured)
+
+### Manual / recovery ingest (files already on disk)
+
+If videos are already under `/opt/media-platform/data/downloads` (including `incoming/`), publish `MOVIE_RECEIVED` without re-uploading:
+
+```bash
+docker compose --env-file .env \
+  -f compose/infrastructure.yml -f compose/services.yml \
+  exec workflow-engine python -m app.ingest
+```
+
+The scan is recursive and covers common video extensions (`.mkv`, `.mp4`, `.avi`, `.mov`, `.wmv`, `.ts`, `.m4v`). Metadata identify failures store a fallback `Movie` row (so quality still has `movie_id`); only a total DB failure marks the workflow failed.
 
 ### Torrents (magnet / .torrent)
 

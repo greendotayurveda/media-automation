@@ -16,8 +16,10 @@ logger = get_logger("storage-worker")
 
 class StorageWorker(EventSubscriber):
     """
-    Listens on StreamName.STORAGE for STORAGE_WARNING / STORAGE_CRITICAL
-    (triggers cleanup) and runs periodic usage checks.
+    Periodic disk checks + cleanup on warning/critical.
+    Still listens on StreamName.STORAGE for externally published
+    STORAGE_WARNING / STORAGE_CRITICAL (does not re-publish there,
+    to avoid a self-consume loop).
     """
 
     stream = StreamName.STORAGE
@@ -27,7 +29,6 @@ class StorageWorker(EventSubscriber):
     def __init__(self) -> None:
         super().__init__(service_name="storage-service")
         self.manager = StorageManager()
-        self.publisher = EventPublisher(StreamName.STORAGE)
         self.workflows = EventPublisher(StreamName.WORKFLOWS)
         self._periodic_task: asyncio.Task | None = None
 
@@ -46,7 +47,12 @@ class StorageWorker(EventSubscriber):
         raw_event: Dict[str, str],
     ) -> None:
         correlation_id = payload.get("correlation_id") or raw_event.get("correlation_id")
-        logger.info("Storage event received — running cleanup", event=event_type.value)
+        # structlog reserves the keyword `event` for the message — never pass event=.
+        logger.info(
+            "Storage event received — running cleanup",
+            event_type=event_type.value,
+            correlation_id=correlation_id,
+        )
         cleanup = await self.manager.cleanup()
         await self.workflows.publish(
             event_type=EventType.STORAGE_CLEANUP_COMPLETED,
@@ -73,33 +79,21 @@ class StorageWorker(EventSubscriber):
         report = await self.manager.collect_report()
         level = report.get("level")
 
-        if level == "warning":
-            await self.publisher.publish(
-                event_type=EventType.STORAGE_WARNING,
-                payload=report,
-                source_service="storage-service",
+        if level in ("warning", "critical"):
+            event_type = (
+                EventType.STORAGE_CRITICAL if level == "critical" else EventType.STORAGE_WARNING
             )
+            # Publish only to workflows (observability / other consumers).
+            # Do not publish back onto stream:storage — this worker consumes that stream.
             await self.workflows.publish(
-                event_type=EventType.STORAGE_WARNING,
+                event_type=event_type,
                 payload=report,
                 source_service="storage-service",
             )
-        elif level == "critical":
-            await self.publisher.publish(
-                event_type=EventType.STORAGE_CRITICAL,
-                payload=report,
-                source_service="storage-service",
-            )
-            await self.workflows.publish(
-                event_type=EventType.STORAGE_CRITICAL,
-                payload=report,
-                source_service="storage-service",
-            )
-            # Critical: cleanup immediately as well
             cleanup = await self.manager.cleanup()
             await self.workflows.publish(
                 event_type=EventType.STORAGE_CLEANUP_COMPLETED,
-                payload={**cleanup, "trigger": "critical_auto"},
+                payload={**cleanup, "trigger": f"{level}_auto"},
                 source_service="storage-service",
             )
             report["cleanup"] = cleanup

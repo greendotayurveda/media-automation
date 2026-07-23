@@ -41,13 +41,35 @@ class AnalyzerWorker(EventSubscriber):
             return
 
         logger.info("Starting analysis", file=file_path, correlation_id=correlation_id)
-        specs = await self.analyzer.analyze(file_path)
-
-        # Publish MEDIA_ANALYZED back to workflow engine
-        await self.publisher.publish(
-            event_type=EventType.MEDIA_ANALYZED,
-            payload={**specs, "correlation_id": correlation_id},
-            source_service="analyzer-service",
-            correlation_id=correlation_id,
-        )
-        logger.info("Completed analysis & published event", file=file_path, resolution=specs["resolution"])
+        try:
+            specs = await self.analyzer.analyze(file_path)
+            await self.publisher.publish(
+                event_type=EventType.MEDIA_ANALYZED,
+                payload={**payload, **specs, "correlation_id": correlation_id},
+                source_service="analyzer-service",
+                correlation_id=correlation_id,
+            )
+            logger.info(
+                "Completed analysis & published event",
+                file=file_path,
+                resolution=specs.get("resolution"),
+                correlation_id=correlation_id,
+            )
+        except Exception as exc:
+            logger.error(
+                "Media analysis failed",
+                file=file_path,
+                error=str(exc),
+                correlation_id=correlation_id,
+            )
+            await self.publisher.publish(
+                event_type=EventType.MEDIA_ANALYZE_FAILED,
+                payload={
+                    **payload,
+                    "file_path": file_path,
+                    "error": str(exc),
+                    "correlation_id": correlation_id,
+                },
+                source_service="analyzer-service",
+                correlation_id=correlation_id,
+            )
