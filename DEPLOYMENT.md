@@ -8,7 +8,7 @@ Target layout assumes Ubuntu + Docker Compose, with data under `/opt/media-platf
 
 ---
 
-## Current platform surface (as of this tree)
+## Current platform surface (as of this trees)
 
 | Area | What ships |
 |------|------------|
