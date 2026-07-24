@@ -60,3 +60,28 @@
 .btnPlay {
   border-radius: 4px !important;
 }
+
+/*
+ * Restore Jellyfin hover backdrop (poster/fanart behind home).
+ * JellyFlix hides .backdropContainer; bring it back with a soft blur.
+ */
+.backdropContainer {
+  display: block !important;
+}
+
+.backdropContainer .backdropImage,
+.backdropContainer .backdropImageFadeIn {
+  filter: blur(12px) brightness(0.45) saturate(1.1);
+  transform: scale(1.08);
+  transform-origin: center center;
+}
+
+.backgroundContainer.withBackdrop {
+  opacity: 1 !important;
+  background-color: transparent !important;
+}
+
+.backgroundContainer {
+  background-color: #101010 !important;
+}
+
