@@ -4,7 +4,8 @@ Smart library reorganize CLI (run inside metadata-service for --fetch-metadata).
 Dry-run (default):
   python -m app.reorganize
 
-Apply moves + optional OMDb/TMDb enrich:
+Uses Jellyfin movie.nfo / movie.info for language/genres when present.
+Apply moves + optional OMDb/TMDb enrich when NFO/DB incomplete:
   python -m app.reorganize --execute --fetch-metadata
 """
 from __future__ import annotations
@@ -34,7 +35,8 @@ async def _run(args: argparse.Namespace) -> int:
     print(
         f"Library root: {settings.library_root}\n"
         f"Mode: {'EXECUTE' if args.execute else 'DRY-RUN'}\n"
-        f"Fetch metadata: {bool(args.fetch_metadata)}\n"
+        f"Fetch metadata (API): {bool(args.fetch_metadata)}\n"
+        f"NFO: movie.nfo / movie.info (always, when present)\n"
         f"Limit: {args.limit or 'none'}\n"
         f"Only under: {only or 'all'}\n"
     )
@@ -52,6 +54,7 @@ async def _run(args: argparse.Namespace) -> int:
         "moved": result.moved,
         "skipped": result.skipped,
         "failed": result.failed,
+        "nfo_used": result.nfo_used,
         "enriched": result.enriched,
     }
     print("Summary:", json.dumps(summary, indent=2))
@@ -67,7 +70,11 @@ async def _run(args: argparse.Namespace) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Reorganize library into language/genre folders without the full pipeline."
+        description=(
+            "Reorganize library into language/genre folders. "
+            "Reads Jellyfin movie.nfo/movie.info when DB language/genres are missing; "
+            "optional --fetch-metadata calls OMDb/TMDb."
+        )
     )
     parser.add_argument(
         "--execute",
@@ -77,7 +84,7 @@ def main() -> None:
     parser.add_argument(
         "--fetch-metadata",
         action="store_true",
-        help="Call OMDb/TMDb when language/genres are missing (recommended).",
+        help="Call OMDb/TMDb when NFO/DB still lack language or genres.",
     )
     parser.add_argument("--limit", type=int, default=None, help="Max videos to process.")
     parser.add_argument(

@@ -2,7 +2,8 @@
 Smart library reorganize: move existing movies into
   library/<language>/<genre>/Title (Year)/
 
-Uses DB metadata when present; optionally refreshes via a metadata enricher.
+Uses DB metadata when present; prefers Jellyfin movie.nfo / movie.info;
+optionally refreshes via a metadata enricher (OMDb/TMDb).
 Does NOT run quality/subtitle pipeline (avoids keep_existing traps).
 """
 from __future__ import annotations
@@ -25,11 +26,30 @@ from shared.utils.library_category import (
     resolve_library_relative_path,
     resolve_library_segments,
 )
+from shared.utils.movie_nfo import load_movie_nfo_metadata
 
 logger = get_logger("reorganize-library")
 
 VIDEO_EXTS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".ts", ".m4v", ".m2ts"}
 SUB_EXTS = {".srt", ".ass", ".ssa", ".vtt", ".sub"}
+# Jellyfin folder-level files (not named after the video stem).
+_FOLDER_SIDECARS = {
+    "movie.nfo",
+    "movie.info",
+    "movie.xml",
+    "folder.jpg",
+    "folder.png",
+    "backdrop.jpg",
+    "backdrop.png",
+    "landscape.jpg",
+    "landscape.png",
+    "fanart.jpg",
+    "fanart.png",
+    "poster.jpg",
+    "poster.png",
+    "logo.png",
+    "logo.svg",
+}
 _YEAR_FOLDER_RE = re.compile(r"^(?P<title>.+?)\s*\((?P<year>19\d{2}|20\d{2})\)\s*$")
 
 EnrichFn = Callable[[str, Dict[str, Any]], Awaitable[Dict[str, Any]]]
@@ -42,6 +62,7 @@ class ReorganizeResult:
     skipped: int = 0
     failed: int = 0
     enriched: int = 0
+    nfo_used: int = 0
     details: List[Dict[str, Any]] = field(default_factory=list)
 
 
@@ -104,18 +125,38 @@ def movie_folder_for_video(video: Path, library_root: Path) -> Path:
 
 
 def collect_sidecars(video: Path) -> List[Path]:
-    """Subtitle / nfo / jpg next to the video sharing the stem prefix."""
+    """Subtitles, stem-matched art/nfo, plus Jellyfin movie.nfo / folder art."""
     stem = video.stem
     siblings: List[Path] = []
-    for sibling in video.parent.iterdir():
+    seen: set[str] = set()
+    parent = video.parent
+    if not parent.is_dir():
+        return siblings
+
+    for sibling in parent.iterdir():
         if not sibling.is_file() or sibling == video:
             continue
         name = sibling.name
-        if name.startswith(stem) and sibling.suffix.lower() in SUB_EXTS.union(
-            {".nfo", ".jpg", ".jpeg", ".png", ".webp"}
-        ):
+        key = name.lower()
+        stem_match = name.startswith(stem) and sibling.suffix.lower() in SUB_EXTS.union(
+            {".nfo", ".info", ".jpg", ".jpeg", ".png", ".webp"}
+        )
+        folder_match = key in _FOLDER_SIDECARS
+        if (stem_match or folder_match) and key not in seen:
+            seen.add(key)
             siblings.append(sibling)
     return siblings
+
+
+def _sidecar_dest_name(video: Path, sidecar: Path, dest_folder_name: str) -> str:
+    """Keep movie.nfo / folder.jpg names; rename stem-prefixed files to dest title."""
+    lower = sidecar.name.lower()
+    if lower in _FOLDER_SIDECARS:
+        return sidecar.name
+    if sidecar.name.startswith(video.stem):
+        suffix_part = sidecar.name[len(video.stem) :]
+        return f"{dest_folder_name}{suffix_part}"
+    return sidecar.name
 
 
 async def _find_movie_record(video: Path, folder: Path) -> Optional[Movie]:
@@ -216,6 +257,7 @@ async def reorganize_library(
     """
     Scan library and move movies into language/genre layout.
 
+    Order for language/genres: DB → movie.nfo/movie.info → optional OMDb/TMDb enricher.
     enricher: async (file_path, context) -> metadata dict with original_language/genres/title/year
     """
     root = Path(library_root or settings.library_root)
@@ -243,6 +285,27 @@ async def reorganize_library(
             language, genres = _classify_from_movie(movie)
             title = (movie.title if movie else None) or _parse_title_year_from_folder(folder.name)[0]
             year = (movie.year if movie else None) or _parse_title_year_from_folder(folder.name)[1]
+            movie_id = movie.id if movie else None
+            meta_source = "db" if (language and genres) else None
+
+            # Prefer Jellyfin NFO when language/genres are incomplete (no API needed).
+            if not language or not genres:
+                nfo_meta = load_movie_nfo_metadata(folder, video)
+                if nfo_meta:
+                    result.nfo_used += 1
+                    meta_source = "nfo"
+                    detail["nfo_path"] = nfo_meta.get("nfo_path")
+                    language = nfo_meta.get("original_language") or language
+                    genres = parse_genre_list(nfo_meta.get("genres")) or genres
+                    title = nfo_meta.get("title") or title
+                    year = nfo_meta.get("year") or year
+                    logger.info(
+                        "Using movie NFO for reorganize",
+                        src=str(video),
+                        language=language,
+                        genres=genres,
+                        nfo=nfo_meta.get("nfo_path"),
+                    )
 
             needs_enrich = fetch_metadata and enricher and (not language or not genres)
             if needs_enrich:
@@ -251,16 +314,17 @@ async def reorganize_library(
                     {
                         "title": title,
                         "year": year,
-                        "movie_id": movie.id if movie else None,
+                        "movie_id": movie_id,
                         "file_size_bytes": video.stat().st_size if video.exists() else None,
                     },
                 )
                 result.enriched += 1
+                meta_source = meta.get("metadata_provider") or meta.get("provider") or "api"
                 language = meta.get("original_language") or language
                 genres = parse_genre_list(meta.get("genres")) or genres
                 title = meta.get("title") or title
                 year = meta.get("year") or year
-                movie_id = meta.get("movie_id") or (movie.id if movie else None)
+                movie_id = meta.get("movie_id") or movie_id
                 # Reload genres/language from DB if identify stored them
                 if movie_id:
                     async with get_db_session() as db:
@@ -275,8 +339,6 @@ async def reorganize_library(
                             language, genres = _classify_from_movie(refreshed)
                             title = refreshed.title or title
                             year = refreshed.year or year
-            else:
-                movie_id = movie.id if movie else None
 
             relative = resolve_library_relative_path(
                 original_language=language,
@@ -302,6 +364,7 @@ async def reorganize_library(
                     "language_folder": lang_folder,
                     "genre_folder": genre_folder,
                     "movie_id": movie_id,
+                    "meta_source": meta_source,
                 }
             )
 
@@ -331,9 +394,7 @@ async def reorganize_library(
             _move_path(video, dest_video, dry_run=dry_run)
             moved_subs = []
             for sub in sidecars:
-                # Keep language suffix: Title.en.srt → DestFolder.en.srt
-                suffix_part = sub.name[len(video.stem) :]  # e.g. .en.srt
-                dest_sub = dest_dir / f"{dest_folder_name}{suffix_part}"
+                dest_sub = dest_dir / _sidecar_dest_name(video, sub, dest_folder_name)
                 _move_path(sub, dest_sub, dry_run=dry_run)
                 moved_subs.append(str(dest_sub))
 
@@ -352,6 +413,7 @@ async def reorganize_library(
                 src=str(video),
                 dest=str(dest_video),
                 library_path=detail["library_path"],
+                meta_source=meta_source,
             )
         except Exception as exc:
             result.failed += 1

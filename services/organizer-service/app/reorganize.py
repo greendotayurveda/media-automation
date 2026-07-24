@@ -22,7 +22,8 @@ async def _run(args: argparse.Namespace) -> int:
     print(
         f"Library root: {settings.library_root}\n"
         f"Mode: {'EXECUTE' if args.execute else 'DRY-RUN'}\n"
-        f"Fetch metadata: false (use metadata-service for --fetch-metadata)\n"
+        f"Fetch metadata (API): false (use metadata-service for --fetch-metadata)\n"
+        f"NFO: movie.nfo / movie.info (always, when present)\n"
         f"Limit: {args.limit or 'none'}\n"
         f"Only under: {only or 'all'}\n"
     )
@@ -41,6 +42,7 @@ async def _run(args: argparse.Namespace) -> int:
                 "moved": result.moved,
                 "skipped": result.skipped,
                 "failed": result.failed,
+                "nfo_used": result.nfo_used,
                 "enriched": result.enriched,
             },
             indent=2,

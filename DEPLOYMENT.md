@@ -291,7 +291,7 @@ docker compose --env-file .env \
   -f compose/infrastructure.yml -f compose/services.yml \
   exec metadata-service python -m app.reorganize --verbose
 
-# 2) Apply: refresh missing language/genres via OMDb/TMDb, then move
+# 2) Apply: use movie.nfo language/genres when present; OMDb/TMDb only if still missing
 docker compose --env-file .env \
   -f compose/infrastructure.yml -f compose/services.yml \
   exec metadata-service python -m app.reorganize --execute --fetch-metadata --verbose
@@ -302,8 +302,9 @@ docker compose --env-file .env \
 
 Notes:
 - Default is **dry-run**; `--execute` is required to move files
-- `--fetch-metadata` fills language/genres when the DB row is incomplete (needs `OMDB_API_KEY` / TMDb). This may upsert movie/genre rows even during dry-run so destinations are accurate
-- Sidecar subtitles next to the video are moved/renamed with the movie
+- Jellyfin `movie.nfo` / `movie.info` is read automatically for language (first audio track, e.g. `hin`→Hindi) and genres when the DB row is incomplete
+- `--fetch-metadata` fills language/genres via OMDb/TMDb only when NFO/DB still lack them (needs `OMDB_API_KEY` / TMDb). This may upsert movie/genre rows even during dry-run so destinations are accurate
+- Sidecar subtitles, `movie.nfo`, and common folder art (`folder.jpg`, `backdrop.jpg`, …) are moved with the movie
 - Empty old folders under `library/` are removed after a successful move
 - Requires `LIBRARY_CATEGORIZE_BY_LANGUAGE` / `LIBRARY_CATEGORIZE_BY_GENRE` as configured in `.env`
 - Rebuild `metadata-service` after pulling so `python -m app.reorganize` is available in the image

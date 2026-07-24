@@ -41,6 +41,33 @@ _LANGUAGE_NAME_TO_CODE: Dict[str, str] = {
     "urdu": "ur",
 }
 
+# Jellyfin/Kodi NFO often uses ISO 639-2 (B/T) audio codes (hin, mal, …).
+_ISO639_2_TO_1: Dict[str, str] = {
+    "hin": "hi",
+    "mal": "ml",
+    "tam": "ta",
+    "tel": "te",
+    "kan": "kn",
+    "eng": "en",
+    "kor": "ko",
+    "jpn": "ja",
+    "chi": "zh",
+    "zho": "zh",
+    "spa": "es",
+    "fre": "fr",
+    "fra": "fr",
+    "ger": "de",
+    "deu": "de",
+    "ita": "it",
+    "por": "pt",
+    "rus": "ru",
+    "ara": "ar",
+    "ben": "bn",
+    "mar": "mr",
+    "pan": "pa",
+    "urd": "ur",
+}
+
 # Normalize provider genre labels → folder slug
 _GENRE_ALIASES: Dict[str, str] = {
     "science fiction": "scifi",
@@ -80,7 +107,7 @@ def parse_language_map(raw: str) -> Dict[str, str]:
 
 
 def normalize_language_code(value: Optional[str]) -> Optional[str]:
-    """Normalize TMDb code or OMDb language name to a 2–3 letter code."""
+    """Normalize TMDb/OMDb/NFO language name or ISO code to a short code (hi, ml, …)."""
     if not value:
         return None
     first = str(value).split(",")[0].strip()
@@ -90,6 +117,8 @@ def normalize_language_code(value: Optional[str]) -> Optional[str]:
     if lower in _LANGUAGE_NAME_TO_CODE:
         return _LANGUAGE_NAME_TO_CODE[lower]
     token = re.split(r"[-_]", lower)[0]
+    if token in _ISO639_2_TO_1:
+        return _ISO639_2_TO_1[token]
     if re.fullmatch(r"[a-z]{2,3}", token):
         return token
     return _LANGUAGE_NAME_TO_CODE.get(lower)
