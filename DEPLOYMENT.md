@@ -281,6 +281,33 @@ docker compose --env-file .env \
 
 The scan is recursive and covers common video extensions (`.mkv`, `.mp4`, `.avi`, `.mov`, `.wmv`, `.ts`, `.m4v`). Metadata identify failures store a fallback `Movie` row (so quality still has `movie_id`); only a total DB failure marks the workflow failed.
 
+### Smart reorganize existing library (language / genre folders)
+
+Use this when movies already sit under `library/movies/` (or mixed paths) and you want them moved to `library/<language>/<genre>/Title (Year)/` **without** re-running the full quality pipeline.
+
+```bash
+# 1) Dry-run (no moves) — always do this first
+docker compose --env-file .env \
+  -f compose/infrastructure.yml -f compose/services.yml \
+  exec metadata-service python -m app.reorganize --verbose
+
+# 2) Apply: refresh missing language/genres via OMDb/TMDb, then move
+docker compose --env-file .env \
+  -f compose/infrastructure.yml -f compose/services.yml \
+  exec metadata-service python -m app.reorganize --execute --fetch-metadata --verbose
+
+# Optional: only old flat tree, first 5 files
+# ... python -m app.reorganize --execute --fetch-metadata --only movies --limit 5
+```
+
+Notes:
+- Default is **dry-run**; `--execute` is required to move files
+- `--fetch-metadata` fills language/genres when the DB row is incomplete (needs `OMDB_API_KEY` / TMDb). This may upsert movie/genre rows even during dry-run so destinations are accurate
+- Sidecar subtitles next to the video are moved/renamed with the movie
+- Empty old folders under `library/` are removed after a successful move
+- Requires `LIBRARY_CATEGORIZE_BY_LANGUAGE` / `LIBRARY_CATEGORIZE_BY_GENRE` as configured in `.env`
+- Rebuild `metadata-service` after pulling so `python -m app.reorganize` is available in the image
+
 ### Torrents (magnet / .torrent)
 
 1. Point `QBITTORRENT_*` at existing WebUI **or** start `--profile torrents`
