@@ -8,8 +8,8 @@ services:
     ports:
       - 8096:8096   # optional, for direct access
     volumes:
-      - ./config:/config
-      - ./cache:/cache
+      - /media/jellyfin/config:/config
+      - /media/jellyfin/cache:/cache
       - /opt/media-platform/data/library/:/media
     restart: unless-stopped
     environment:
