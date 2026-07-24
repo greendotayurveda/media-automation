@@ -356,6 +356,9 @@ Organizer places movies under language **and** genre:
 4. Category dirs are created automatically on organize; language roots:
    `mkdir -p /opt/media-platform/data/library/{malayalam,tamil,bollywood,telugu,kannada,hollywood,other,movies}`
 
+5. Netflix-like web home theme: see `jellyfin/README.md` — paste `jellyfin/custom.css` into
+   **Dashboard → General → Custom CSS**, or run `jellyfin/apply-theme.sh` with `JELLYFIN_API_KEY`
+
 ---
 
 ## 8. Verify deployment

@@ -1,0 +1,62 @@
+/*
+ * Netflix-like Jellyfin web theme for this home server.
+ *
+ * Apply via Dashboard → General → Custom CSS (paste this file),
+ * or run: ./apply-theme.sh
+ *
+ * Base: JellyFlix (pinned). Local overrides below for home polish.
+ */
+
+@import url("https://cdn.jsdelivr.net/gh/prayag17/JellyFlix@9.0.4/default.css");
+@import url("https://cdn.jsdelivr.net/gh/prayag17/JellyFlix@9.0.4/addons/Logo.css");
+
+:root {
+  /* Netflix red — change if you want Disney+/custom accent */
+  --accent: #e50914;
+}
+
+/* Home: denser cinematic rows */
+.homeSectionsContainer,
+.sectionTitleContainer {
+  padding-left: 2.5% !important;
+  padding-right: 2.5% !important;
+}
+
+.sectionTitle {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  text-transform: none !important;
+}
+
+/* Larger poster cards on home / libraries */
+.cardBox:not(.visualCardBox) .cardImageContainer,
+.cardImageContainer {
+  border-radius: 4px !important;
+}
+
+.card:hover .cardBox {
+  transform: scale(1.06);
+  transition: transform 0.2s ease;
+  z-index: 5;
+}
+
+/* Softer top bar so home feels app-like */
+.skinHeader {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.35) 60%,
+    transparent 100%
+  ) !important;
+}
+
+/* Hide noisy home chrome a bit */
+.homePage .emby-scroller::-webkit-scrollbar {
+  height: 0;
+}
+
+/* Detail / play buttons closer to streaming apps */
+.mainAnimatedPages .raised.button-submit,
+.btnPlay {
+  border-radius: 4px !important;
+}

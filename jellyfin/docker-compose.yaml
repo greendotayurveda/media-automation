@@ -11,6 +11,8 @@ services:
       - /media/jellyfin/config:/config
       - /media/jellyfin/cache:/cache
       - /opt/media-platform/data/library/:/media
+      # Netflix-like theme (paste into Dashboard Custom CSS, or run apply-theme.sh)
+      - ./custom.css:/config/custom-css/netflix.css:ro
     restart: unless-stopped
     environment:
       - TZ=Asia/Kolkata
@@ -18,4 +20,3 @@ services:
 networks:
   media_network:
     external: true
-
