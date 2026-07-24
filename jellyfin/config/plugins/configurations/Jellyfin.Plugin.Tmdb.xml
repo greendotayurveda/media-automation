@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <TmdbApiKey />
+  <IncludeAdult>true</IncludeAdult>
+  <ExcludeTagsSeries>true</ExcludeTagsSeries>
+  <ExcludeTagsMovies>true</ExcludeTagsMovies>
+  <ImportSeasonName>true</ImportSeasonName>
+  <MaxCastMembers>15</MaxCastMembers>
+  <PosterSize>original</PosterSize>
+  <BackdropSize>original</BackdropSize>
+  <LogoSize>original</LogoSize>
+  <ProfileSize>original</ProfileSize>
+  <StillSize>original</StillSize>
+</PluginConfiguration>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <RetDays>0</RetDays>
+  <IsEnabled>true</IsEnabled>
+  <tkMovies>true</tkMovies>
+  <tvTVShows>true</tvTVShows>
+  <tkMusic>true</tkMusic>
+  <tkMusicVideos>true</tkMusicVideos>
+  <tkBoxSets>true</tkBoxSets>
+</PluginConfiguration>
