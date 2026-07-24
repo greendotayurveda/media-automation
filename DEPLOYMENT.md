@@ -115,6 +115,7 @@ Whenever `.env.sample` gains keys in a pull, those keys must be added to the ser
 
 | Feature | Variables / notes |
 |---------|-------------------|
+| Library categories | `LIBRARY_CATEGORIZE_BY_LANGUAGE`, `LIBRARY_LANGUAGE_MAP`, `LIBRARY_DEFAULT_CATEGORY`, `LIBRARY_CATEGORIZE_BY_GENRE`, `LIBRARY_GENRE_PRIORITY`, `LIBRARY_DEFAULT_GENRE`, `LIBRARY_GENRE_ALIASES` |
 | Metadata order | `METADATA_PROVIDERS` — comma list, e.g. `omdb,tmdb` (India) or `tmdb,omdb` |
 | TMDb proxy | `TMDB_HTTP_PROXY` — HTTP(S) proxy URL if you keep TMDb behind a proxy |
 | TMDb images | `TMDB_IMAGE_BASE_URL` (default `https://image.tmdb.org/t/p`) |
@@ -307,9 +308,25 @@ The scan is recursive and covers common video extensions (`.mkv`, `.mp4`, `.avi`
 
 ### Jellyfin library
 
-1. Point Jellyfin movie libraries at `/opt/media-platform/data/library/movies`
+Organizer places movies under language **and** genre:
+
+```text
+/opt/media-platform/data/library/malayalam/action/Title (Year)/
+/opt/media-platform/data/library/tamil/thriller/Title (Year)/
+/opt/media-platform/data/library/bollywood/comedy/Title (Year)/
+/opt/media-platform/data/library/hollywood/horror/Title (Year)/
+/opt/media-platform/data/library/other/other/Title (Year)/
+```
+
+- Language: `LIBRARY_LANGUAGE_MAP` / `LIBRARY_DEFAULT_CATEGORY` (`LIBRARY_CATEGORIZE_BY_LANGUAGE=false` → `library/movies/...`)
+- Genre: primary genre via `LIBRARY_GENRE_PRIORITY` (`LIBRARY_CATEGORIZE_BY_GENRE=false` → no genre subfolder)
+- Multi-genre titles pick the first match in `LIBRARY_GENRE_PRIORITY`, else the first provider genre
+
+1. In Jellyfin, add Movies libraries per language folder (or deeper if you prefer per-genre libs)
 2. Optional recordings library: `/opt/media-platform/data/library/recordings`
 3. API key + user id in `.env` for automatic refresh after organize
+4. Category dirs are created automatically on organize; language roots:
+   `mkdir -p /opt/media-platform/data/library/{malayalam,tamil,bollywood,telugu,kannada,hollywood,other,movies}`
 
 ---
 
@@ -396,6 +413,43 @@ docker compose --env-file .env \
 ```
 
 Add `--profile torrents` and/or `--profile ai` if you use those features.
+
+---
+
+## 11a. Troubleshooting: Redis `MISCONF` / empty `incoming/`
+
+If qBittorrent finishes but **`/opt/media-platform/data/downloads/incoming/` stays empty** and service logs spam:
+
+`MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk`
+
+…the **whole event bus is write-locked**. Download-service cannot publish `DOWNLOAD_COMPLETED`, so the movie pipeline never starts and nothing is copied to `incoming/` or `library/movies`. This is infrastructure, not an organizer/workflow logic bug.
+
+**Fix (on the server):**
+
+```bash
+# Confirm host / Docker disk pressure (common root cause)
+df -h
+docker system df
+
+# Inspect Redis
+docker logs mp_redis --tail 50
+
+# Temporary unblock writes (until disk is freed)
+docker exec mp_redis redis-cli -a "$REDIS_PASSWORD" CONFIG SET stop-writes-on-bgsave-error no
+
+# Proper fix: free disk, then re-enable persistence safety
+docker system prune -af   # only if you accept removing unused images/containers
+# free space under /opt/media-platform/data (old torrents, archives, etc.)
+docker exec mp_redis redis-cli -a "$REDIS_PASSWORD" CONFIG SET stop-writes-on-bgsave-error yes
+docker exec mp_redis redis-cli -a "$REDIS_PASSWORD" BGSAVE
+
+# Restart consumers after Redis accepts writes again
+docker compose --env-file .env \
+  -f compose/infrastructure.yml -f compose/services.yml \
+  restart download-service workflow-engine
+```
+
+After Redis is healthy, either re-send the magnet from Telegram or run manual ingest once the video is under `downloads/` / `incoming/`.
 
 ---
 

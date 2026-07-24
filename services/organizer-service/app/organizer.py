@@ -1,6 +1,6 @@
 """
 Jellyfin-compliant file organizer and Library refresher.
-Organizes incoming files to /data/library/movies/Title (Year)/Title (Year).ext
+Organizes into library/<language>/<genre>/Title (Year)/Title (Year).ext
 Replaces lower-quality library copies on upgrade.
 """
 import os
@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from shared.config.settings import settings
 from shared.database.connection import get_db_session
@@ -17,6 +18,11 @@ from shared.database.models.movie import Movie
 from shared.database.models.subtitle import Subtitle
 from shared.logging.logger import get_logger
 from shared.utils.file import archive_file, safe_move, safe_replace
+from shared.utils.library_category import (
+    parse_genre_list,
+    resolve_library_relative_path,
+    resolve_library_segments,
+)
 
 logger = get_logger("media-organizer")
 
@@ -40,7 +46,29 @@ class MediaOrganizer:
 
         year_str = f" ({year})" if year else ""
         folder_name = self._sanitize_folder_name(f"{title}{year_str}")
-        target_dir = settings.library_root / "movies" / folder_name
+
+        original_language = payload.get("original_language")
+        genres = payload.get("genres") or payload.get("genre")
+        primary_genre = payload.get("primary_genre")
+        if movie_id and (not original_language or not genres):
+            db_lang, db_genres = await self._load_movie_classify_fields(movie_id)
+            original_language = original_language or db_lang
+            genres = genres or db_genres
+
+        if not genres and primary_genre:
+            genres = [primary_genre]
+
+        relative = resolve_library_relative_path(
+            original_language=original_language,
+            genres=genres,
+            payload=payload,
+        )
+        lang_folder, genre_folder = resolve_library_segments(
+            original_language=original_language,
+            genres=genres,
+            payload=payload,
+        )
+        target_dir = settings.library_root / relative / folder_name
         target_media_path = target_dir / f"{folder_name}{ext}"
 
         os.makedirs(target_dir, exist_ok=True)
@@ -57,6 +85,10 @@ class MediaOrganizer:
             "Organizing movie file",
             src=src_file_path,
             dest=str(target_media_path),
+            library_path=str(relative),
+            language_folder=lang_folder,
+            genre_folder=genre_folder,
+            original_language=original_language,
             is_upgrade=is_upgrade,
             existing_library_path=existing_library_path,
         )
@@ -136,6 +168,11 @@ class MediaOrganizer:
 
         return {
             "movie_id": movie_id,
+            "library_category": lang_folder,
+            "library_genre": genre_folder,
+            "library_relative_path": str(relative).replace("\\", "/"),
+            "original_language": original_language,
+            "genres": parse_genre_list(genres),
             "organized_folder": str(target_dir),
             "organized_file_path": str(target_media_path),
             "organized_subtitles": moved_subtitles,
@@ -201,6 +238,21 @@ class MediaOrganizer:
             if movie and movie.file_path and self._is_library_path(movie.file_path):
                 return movie.file_path
         return None
+
+    async def _load_movie_classify_fields(
+        self, movie_id: str
+    ) -> tuple[Optional[str], List[str]]:
+        async with get_db_session() as db:
+            result = await db.execute(
+                select(Movie)
+                .where(Movie.id == movie_id)
+                .options(selectinload(Movie.genres))
+            )
+            movie = result.scalar_one_or_none()
+            if not movie:
+                return None, []
+            genre_names = [g.name for g in (movie.genres or []) if g and g.name]
+            return movie.original_language, genre_names
 
     @staticmethod
     def _is_library_path(path: str) -> bool:

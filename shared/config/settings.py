@@ -69,6 +69,24 @@ class Settings(BaseSettings):
     temp_root: Path = Path("/opt/media-platform/data/temp")
     log_root: Path = Path("/opt/media-platform/logs")
 
+    # Library layout: library/<language>/<genre>/Title (Year)/
+    # When language categorize is false, use library/movies[/genre]/
+    library_categorize_by_language: bool = True
+    library_default_category: str = "other"
+    # ISO language code → folder under library_root
+    library_language_map: str = (
+        "ml:malayalam,ta:tamil,hi:bollywood,te:telugu,kn:kannada,en:hollywood"
+    )
+    library_categorize_by_genre: bool = True
+    library_default_genre: str = "other"
+    # Prefer earlier genres when a title has several
+    library_genre_priority: str = (
+        "horror,thriller,action,comedy,romance,animation,scifi,adventure,"
+        "crime,fantasy,mystery,drama,family,documentary,biography,music,war,western,sport,history"
+    )
+    # Extra aliases: "science fiction:scifi,sci-fi:scifi"
+    library_genre_aliases: str = "science fiction:scifi,sci-fi:scifi,sci fi:scifi"
+
     # Jellyfin
     jellyfin_url: str = "http://jellyfin:8096"
     jellyfin_api_key: str = ""

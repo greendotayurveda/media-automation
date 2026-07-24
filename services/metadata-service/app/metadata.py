@@ -7,15 +7,16 @@ Order is controlled by METADATA_PROVIDERS (default: omdb,tmdb).
 """
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from sqlalchemy import select
 
 from shared.config.settings import settings
 from shared.database.connection import get_db_session
-from shared.database.models.movie import Movie
+from shared.database.models.movie import Genre, Movie
 from shared.logging.logger import get_logger
+from shared.utils.library_category import parse_genre_list, pick_primary_genre
 
 logger = get_logger("metadata-service")
 
@@ -135,6 +136,7 @@ class MetadataFetcher:
             flags=re.IGNORECASE,
         ).strip(" -")
         return stripped or name
+
     async def identify_and_store_movie(self, file_path: str, payload_specs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Resolve metadata via configured providers and upsert Movie by tmdb_id/imdb_id.
@@ -151,6 +153,9 @@ class MetadataFetcher:
         backdrop_url = resolved.get("backdrop_url")
         overview = resolved.get("overview")
         original_title = resolved.get("original_title")
+        original_language = resolved.get("original_language")
+        genre_names = parse_genre_list(resolved.get("genres"))
+        primary_genre = pick_primary_genre(genre_names)
         rating_tmdb = resolved.get("rating_tmdb")
         rating_imdb = resolved.get("rating_imdb")
         provider = resolved.get("provider") or "filename"
@@ -170,6 +175,7 @@ class MetadataFetcher:
                 movie.tmdb_id = tmdb_id or movie.tmdb_id
                 movie.imdb_id = imdb_id or movie.imdb_id
                 movie.overview = overview or movie.overview
+                movie.original_language = original_language or movie.original_language
                 movie.rating_tmdb = rating_tmdb if rating_tmdb is not None else movie.rating_tmdb
                 movie.rating_imdb = rating_imdb if rating_imdb is not None else movie.rating_imdb
                 if poster_url:
@@ -184,6 +190,7 @@ class MetadataFetcher:
                     tmdb_id=tmdb_id,
                     imdb_id=imdb_id,
                     overview=overview,
+                    original_language=original_language,
                     rating_tmdb=rating_tmdb,
                     rating_imdb=rating_imdb,
                     poster_url=poster_url,
@@ -192,6 +199,10 @@ class MetadataFetcher:
                     file_size_bytes=payload_specs.get("file_size_bytes"),
                 )
                 db.add(movie)
+                await db.flush()
+
+            if genre_names:
+                await self._sync_movie_genres(db, movie, genre_names)
 
             await db.commit()
             await db.refresh(movie)
@@ -201,6 +212,9 @@ class MetadataFetcher:
                 movie_id=movie.id,
                 title=movie.title,
                 provider=provider,
+                original_language=movie.original_language,
+                primary_genre=primary_genre,
+                genres=genre_names,
                 updated=is_update,
                 existing_library_path=existing_library_path,
             )
@@ -213,6 +227,9 @@ class MetadataFetcher:
                 "imdb_id": movie.imdb_id,
                 "poster_url": movie.poster_url,
                 "backdrop_url": movie.backdrop_url,
+                "original_language": movie.original_language,
+                "genres": genre_names,
+                "primary_genre": primary_genre,
                 "file_path": file_path,
                 "existing_library_path": existing_library_path,
                 "is_existing_movie": is_update,
@@ -253,6 +270,9 @@ class MetadataFetcher:
                 "imdb_id": None,
                 "poster_url": None,
                 "backdrop_url": None,
+                "original_language": None,
+                "genres": [],
+                "primary_genre": None,
                 "file_path": file_path,
                 "existing_library_path": None,
                 "is_existing_movie": False,
@@ -307,6 +327,22 @@ class MetadataFetcher:
             return result.scalar_one_or_none()
         return None
 
+    async def _sync_movie_genres(self, db, movie: Movie, genre_names: List[str]) -> None:
+        """Upsert Genre rows by name and replace movie.genres association."""
+        genres: List[Genre] = []
+        for name in genre_names:
+            clean = name.strip()
+            if not clean:
+                continue
+            result = await db.execute(select(Genre).where(Genre.name == clean).limit(1))
+            genre = result.scalar_one_or_none()
+            if not genre:
+                genre = Genre(name=clean)
+                db.add(genre)
+                await db.flush()
+            genres.append(genre)
+        movie.genres = genres
+
     def _tmdb_client_kwargs(self) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = {"timeout": 15.0}
         if self.tmdb_http_proxy:
@@ -357,6 +393,11 @@ class MetadataFetcher:
 
                 poster_path = details.get("poster_path")
                 backdrop_path = details.get("backdrop_path")
+                tmdb_genres = [
+                    g.get("name")
+                    for g in (details.get("genres") or [])
+                    if isinstance(g, dict) and g.get("name")
+                ]
                 return {
                     "provider": "tmdb",
                     "title": details.get("title") or title,
@@ -365,6 +406,9 @@ class MetadataFetcher:
                     "tmdb_id": details.get("id") or movie_id,
                     "imdb_id": details.get("imdb_id"),
                     "overview": details.get("overview"),
+                    "original_language": details.get("original_language"),
+                    "origin_country": (details.get("origin_country") or [None])[0],
+                    "genres": tmdb_genres,
                     "rating_tmdb": details.get("vote_average"),
                     "rating_imdb": None,
                     "poster_url": (
@@ -452,6 +496,8 @@ class MetadataFetcher:
                 if raw_year and str(raw_year)[:4].isdigit():
                     resolved_year = int(str(raw_year)[:4])
 
+                from shared.utils.library_category import normalize_language_code
+
                 return {
                     "provider": "omdb",
                     "title": data.get("Title") or title,
@@ -460,6 +506,8 @@ class MetadataFetcher:
                     "tmdb_id": None,
                     "imdb_id": data.get("imdbID"),
                     "overview": data.get("Plot") if data.get("Plot") != "N/A" else None,
+                    "original_language": normalize_language_code(data.get("Language")),
+                    "genres": parse_genre_list(data.get("Genre")),
                     "rating_tmdb": None,
                     "rating_imdb": rating_imdb,
                     "poster_url": poster,
