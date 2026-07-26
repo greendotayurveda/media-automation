@@ -183,6 +183,9 @@ services:
       - /opt/media-platform/data:/opt/media-platform/data
     networks:
       - backend
+    devices:
+      - /dev/dri:/dev/dri
+
 
   # ─────────────────────────────────────────────
   # Phase 11: Organizer Service (Jellyfin Layout & Refresh)
