@@ -6,13 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Install curl, ffmpeg, and Intel Quick Sync (VAAPI) hardware drivers
+# Install curl, ffmpeg, and standard Intel Quick Sync (VAAPI) hardware drivers
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
-    intel-media-va-driver-non-free \
-    i965-va-driver-shaders \
-    libmfx1 \
+    intel-media-va-driver \
+    i965-va-driver \
     libva-drm2 \
     libva2 \
     && rm -rf /var/lib/apt/lists/*
