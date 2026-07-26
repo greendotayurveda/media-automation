@@ -159,7 +159,7 @@ class Settings(BaseSettings):
     # Video Compression
     compression_enabled: bool = True
     compression_crf: int = 22
-    compression_preset: str = "slow"
+    compression_preset: str = "fast"
     compression_encoder: str = "libx265"
     compression_max_cpu_percent: int = 75
 

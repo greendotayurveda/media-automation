@@ -119,17 +119,24 @@ class MediaCompressor:
 
         temp_out = file_path.with_name(f"{file_path.stem}_compressing_{int(time.time())}{file_path.suffix}")
 
+        encoder = settings.compression_encoder.lower()
         cmd = [
             "ffmpeg",
             "-y",
             "-i",
             str(file_path),
             "-c:v",
-            settings.compression_encoder,
-            "-crf",
-            str(settings.compression_crf),
-            "-preset",
-            settings.compression_preset,
+            encoder,
+        ]
+
+        if "qsv" in encoder:
+            cmd.extend(["-global_quality", str(settings.compression_crf), "-preset", settings.compression_preset])
+        elif "nvenc" in encoder:
+            cmd.extend(["-cq", str(settings.compression_crf), "-preset", settings.compression_preset])
+        else:
+            cmd.extend(["-crf", str(settings.compression_crf), "-preset", settings.compression_preset])
+
+        cmd.extend([
             "-c:a",
             "copy",
             "-c:s",
@@ -137,7 +144,7 @@ class MediaCompressor:
             "-map",
             "0",
             str(temp_out),
-        ]
+        ])
 
         logger.info("Executing FFmpeg compression", cmd=" ".join(cmd), file=str(file_path))
 
