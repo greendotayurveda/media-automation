@@ -137,7 +137,12 @@ class MediaCompressor:
         elif "nvenc" in encoder:
             cmd.extend(["-cq", str(settings.compression_crf), "-preset", settings.compression_preset])
         else:
-            cmd.extend(["-crf", str(settings.compression_crf), "-preset", settings.compression_preset])
+            cmd.extend([
+                "-crf", str(settings.compression_crf),
+                "-preset", settings.compression_preset,
+                "-threads", "0",
+                "-x265-params", "pool=*",
+            ])
 
         cmd.extend([
             "-c:a",
