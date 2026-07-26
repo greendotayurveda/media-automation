@@ -160,7 +160,11 @@ class Settings(BaseSettings):
     compression_enabled: bool = True
     compression_crf: int = 22
     compression_preset: str = "fast"
-    compression_encoder: str = "libx265"
+    # Options for compression_encoder:
+    # 'libx265' : Software HEVC/H.265 (High compression, extremely slow)
+    # 'hevc_qsv': Intel QuickSync H.265 (Fast, requires Gen 6+ Intel CPU)
+    # 'h264_qsv': Intel QuickSync H.264 (Fast, works on older Intel CPUs like Haswell)
+    compression_encoder: str = "h264_qsv"
     compression_max_cpu_percent: int = 75
 
     # Storage thresholds (GB)
