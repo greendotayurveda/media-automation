@@ -26,10 +26,21 @@ async def main():
         print(f"❌ Library root path does not exist: {library_root}")
         return
 
-    # Find all video files recursively in library
+    # Clean up any leftover temporary _compressing_ files from previous cancelled runs
+    for temp in library_root.rglob("*_compressing_*"):
+        if temp.is_file():
+            try:
+                temp.unlink()
+            except Exception:
+                pass
+
+    # Find all video files recursively in library (excluding temp files)
     files = [
         p for p in library_root.rglob("*")
-        if p.is_file() and p.suffix.lower() in VIDEO_EXTS and not p.name.startswith(".")
+        if p.is_file()
+        and p.suffix.lower() in VIDEO_EXTS
+        and not p.name.startswith(".")
+        and "_compressing_" not in p.name
     ]
 
     if not files:
