@@ -122,6 +122,9 @@ class MediaCompressor:
         encoder = settings.compression_encoder.lower()
         cmd = [
             "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
             "-y",
             "-i",
             str(file_path),
