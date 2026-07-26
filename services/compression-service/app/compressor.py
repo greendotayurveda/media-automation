@@ -126,13 +126,26 @@ class MediaCompressor:
             "-loglevel",
             "error",
             "-y",
+        ]
+
+        if "vaapi" in encoder:
+            # Setup hardware acceleration for VAAPI before the input
+            cmd.extend([
+                "-init_hw_device", "vaapi=intel:/dev/dri/renderD128",
+                "-filter_hw_device", "intel"
+            ])
+
+        cmd.extend([
             "-i",
             str(file_path),
             "-c:v",
             encoder,
-        ]
+        ])
 
-        if "qsv" in encoder:
+        if "vaapi" in encoder:
+            # VAAPI requires uploading the frame to GPU memory
+            cmd.extend(["-vf", "format=nv12,hwupload", "-global_quality", str(settings.compression_crf)])
+        elif "qsv" in encoder:
             cmd.extend(["-global_quality", str(settings.compression_crf), "-preset", settings.compression_preset])
         elif "nvenc" in encoder:
             cmd.extend(["-cq", str(settings.compression_crf), "-preset", settings.compression_preset])
