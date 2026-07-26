@@ -165,6 +165,26 @@ services:
       - backend
 
   # ─────────────────────────────────────────────
+  # Video Compression Service (FFmpeg HEVC Transcoder)
+  # ─────────────────────────────────────────────
+  compression-service:
+    build:
+      context: ..
+      dockerfile: services/compression-service/Dockerfile
+    image: media-platform/compression-service:latest
+    container_name: mp_compression_service
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    volumes:
+      - /opt/media-platform/data:/opt/media-platform/data
+    networks:
+      - backend
+
+  # ─────────────────────────────────────────────
   # Phase 11: Organizer Service (Jellyfin Layout & Refresh)
   # ─────────────────────────────────────────────
   organizer-service:

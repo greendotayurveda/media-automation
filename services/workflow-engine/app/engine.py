@@ -28,6 +28,7 @@ class WorkflowOrchestrator:
         self.metadata_publisher = EventPublisher(StreamName.METADATA)
         self.subtitle_publisher = EventPublisher(StreamName.SUBTITLES)
         self.quality_publisher = EventPublisher(StreamName.QUALITY)
+        self.compression_publisher = EventPublisher(StreamName.COMPRESSION)
         self.file_publisher = EventPublisher(StreamName.FILES)
         self.notification_publisher = EventPublisher(StreamName.NOTIFICATIONS)
 
@@ -58,8 +59,9 @@ class WorkflowOrchestrator:
                 WorkflowStep(job_id=job.id, name="identify_metadata", order=2, status="pending"),
                 WorkflowStep(job_id=job.id, name="download_subtitles", order=3, status="pending"),
                 WorkflowStep(job_id=job.id, name="verify_quality", order=4, status="pending"),
-                WorkflowStep(job_id=job.id, name="organize_file", order=5, status="pending"),
-                WorkflowStep(job_id=job.id, name="refresh_jellyfin", order=6, status="pending"),
+                WorkflowStep(job_id=job.id, name="compress_video", order=5, status="pending"),
+                WorkflowStep(job_id=job.id, name="organize_file", order=6, status="pending"),
+                WorkflowStep(job_id=job.id, name="refresh_jellyfin", order=7, status="pending"),
             ]
             db.add_all(steps)
             await db.commit()
@@ -164,10 +166,28 @@ class WorkflowOrchestrator:
                 await self._complete_step_and_trigger_next(
                     correlation_id=correlation_id,
                     completed_step_name="verify_quality",
-                    next_event_type=EventType.FILE_ORGANIZE_REQUESTED,
-                    next_publisher=self.file_publisher,
+                    next_event_type=EventType.MEDIA_COMPRESS_REQUESTED,
+                    next_publisher=self.compression_publisher,
                     output_payload=payload,
                 )
+
+        elif (
+            event_type == EventType.MEDIA_COMPRESSED
+            or event_type == EventType.MEDIA_COMPRESS_SKIPPED
+            or event_type == EventType.MEDIA_COMPRESS_FAILED
+        ):
+            if event_type == EventType.MEDIA_COMPRESS_FAILED:
+                logger.warning(
+                    "Compression failed, continuing workflow with uncompressed file",
+                    correlation_id=correlation_id,
+                )
+            await self._complete_step_and_trigger_next(
+                correlation_id=correlation_id,
+                completed_step_name="compress_video",
+                next_event_type=EventType.FILE_ORGANIZE_REQUESTED,
+                next_publisher=self.file_publisher,
+                output_payload=payload,
+            )
 
         elif event_type == EventType.FILE_ORGANIZED:
             await self._complete_step_and_trigger_next(

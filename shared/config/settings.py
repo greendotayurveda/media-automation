@@ -156,6 +156,13 @@ class Settings(BaseSettings):
     quality_prefer_hdr: bool = True
     quality_prefer_hevc: bool = True
 
+    # Video Compression
+    compression_enabled: bool = True
+    compression_crf: int = 22
+    compression_preset: str = "slow"
+    compression_encoder: str = "libx265"
+    compression_max_cpu_percent: int = 75
+
     # Storage thresholds (GB)
     storage_warning_threshold_gb: int = 100
     storage_critical_threshold_gb: int = 50

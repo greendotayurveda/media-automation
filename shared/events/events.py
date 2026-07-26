@@ -49,6 +49,12 @@ class EventType(str, Enum):
     QUALITY_UPGRADE_AVAILABLE = "quality.upgrade.available"
     QUALITY_UPGRADED = "quality.upgraded"
 
+    # ── Compression ───────────────────────────────────────────
+    MEDIA_COMPRESS_REQUESTED = "media.compress.requested"
+    MEDIA_COMPRESSED = "media.compressed"
+    MEDIA_COMPRESS_SKIPPED = "media.compress.skipped"
+    MEDIA_COMPRESS_FAILED = "media.compress.failed"
+
     # ── File organization ─────────────────────────────────────
     FILE_ORGANIZE_REQUESTED = "file.organize.requested"
     FILE_ORGANIZED = "file.organized"
@@ -99,6 +105,7 @@ class StreamName(str, Enum):
     METADATA = "stream:metadata"
     SUBTITLES = "stream:subtitles"
     QUALITY = "stream:quality"
+    COMPRESSION = "stream:compression"
     FILES = "stream:files"
     HEALTH = "stream:health"
     STORAGE = "stream:storage"
